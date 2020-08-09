@@ -7,22 +7,28 @@
 //
 
 #import "AppDelegate.h"
-
-@interface AppDelegate ()
-
-@property (weak) IBOutlet NSWindow *window;
-@end
+#import "MainWindowController.h"
 
 @implementation AppDelegate
-
-- (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-	// Insert code here to initialize your application
+{
+	MainWindowController* mainWindowController;
 }
 
+- (void)applicationDidFinishLaunching:(NSNotification*)aNotification
+{
+	MainWindowController* mainWindowController = [[MainWindowController alloc] init];
+	[mainWindowController showWindow:self];
+	self->mainWindowController = mainWindowController;
+}
 
-- (void)applicationWillTerminate:(NSNotification *)aNotification {
+- (void)applicationWillTerminate:(NSNotification*)aNotification
+{
 	// Insert code here to tear down your application
 }
 
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
+{
+	return YES;
+}
 
 @end

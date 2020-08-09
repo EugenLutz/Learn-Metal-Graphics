@@ -1,5 +1,5 @@
 //
-//  AppDelegate.h
+//  MainWindowController.h
 //  Learn Metal Graphics
 //
 //  Created by Евгений Лютц on 06.08.20.
@@ -8,6 +8,10 @@
 
 @import Cocoa;
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+NS_ASSUME_NONNULL_BEGIN
+
+@interface MainWindowController : NSWindowController
 
 @end
+
+NS_ASSUME_NONNULL_END

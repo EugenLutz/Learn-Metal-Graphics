@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "-[SceneRenderer drawInMTKView:]:SceneRenderer.m">
+         <PersistentStrings>
+            <PersistentString
+               value = "currentRenderPassDescriptor.colorAttachments[0].texture">
+            </PersistentString>
+            <PersistentString
+               value = "drawable.texture">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "-[MultipleObjectsScene _initCommon]:MultipleObjectsScene.m">
+         <PersistentStrings>
+            <PersistentString
+               value = "self.sceneRenderer.renderPassDescriptor.depthAttachment">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "-[MultipleObjectsScene drawWithRenderCommandEncoder:]:MultipleObjectsScene.m">
+         <PersistentStrings>
+            <PersistentString
+               value = "self.sceneRenderer.renderPassDescriptor.depthAttachment">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>
