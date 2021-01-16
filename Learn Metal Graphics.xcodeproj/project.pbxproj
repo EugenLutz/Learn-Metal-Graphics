@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C935012C24DDBD56002A049A /* MultipleObjectsScene.m in Sources */ = {isa = PBXBuildFile; fileRef = C935012B24DDBD56002A049A /* MultipleObjectsScene.m */; };
+		C935012C24DDBD56002A049A /* ForwardLightningScene.m in Sources */ = {isa = PBXBuildFile; fileRef = C935012B24DDBD56002A049A /* ForwardLightningScene.m */; };
 		C93EF7C524DE96EC008E4461 /* TexturedMeshShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C93EF7C424DE96EC008E4461 /* TexturedMeshShaders.metal */; };
 		C93EF7CA24DE9B24008E4461 /* rock1.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7C824DE9B23008E4461 /* rock1.png */; };
 		C93EF7CB24DE9B24008E4461 /* rock2.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7C924DE9B23008E4461 /* rock2.png */; };
@@ -16,7 +16,7 @@
 		C93EF7D424DEA542008E4461 /* wood1.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7D224DEA542008E4461 /* wood1.png */; };
 		C93EF7D524DEA542008E4461 /* wood2.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7D324DEA542008E4461 /* wood2.png */; };
 		C93EF7DE24DECDAF008E4461 /* math_utils.m in Sources */ = {isa = PBXBuildFile; fileRef = C93EF7DD24DECDAF008E4461 /* math_utils.m */; };
-		C93EF7E024DF0FF0008E4461 /* placeholder.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7DF24DF0FF0008E4461 /* placeholder.png */; };
+		C93EF7E024DF0FF0008E4461 /* placeholder0.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7DF24DF0FF0008E4461 /* placeholder0.png */; };
 		C94B063024DBDBE50050EFA3 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = C94B062F24DBDBE50050EFA3 /* AppDelegate.m */; };
 		C94B063224DBDBE70050EFA3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C94B063124DBDBE70050EFA3 /* Assets.xcassets */; };
 		C94B063524DBDBE70050EFA3 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = C94B063324DBDBE70050EFA3 /* MainMenu.xib */; };
@@ -28,11 +28,13 @@
 		C94B064A24DBDC640050EFA3 /* MainWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = C94B064824DBDC640050EFA3 /* MainWindowController.xib */; };
 		C94B064D24DBDF340050EFA3 /* SceneRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = C94B064C24DBDF340050EFA3 /* SceneRenderer.m */; };
 		C94B065024DC4D140050EFA3 /* Scene.m in Sources */ = {isa = PBXBuildFile; fileRef = C94B064F24DC4D140050EFA3 /* Scene.m */; };
+		C9898AE524E46B4E00CDE2B3 /* placeholder.png in Resources */ = {isa = PBXBuildFile; fileRef = C9898AE424E46B4E00CDE2B3 /* placeholder.png */; };
+		C9CF232724E08E380005B049 /* TexturedMeshShadersArg.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9CF232624E08E380005B049 /* TexturedMeshShadersArg.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		C935012A24DDBD56002A049A /* MultipleObjectsScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MultipleObjectsScene.h; sourceTree = "<group>"; };
-		C935012B24DDBD56002A049A /* MultipleObjectsScene.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MultipleObjectsScene.m; sourceTree = "<group>"; };
+		C935012A24DDBD56002A049A /* ForwardLightningScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ForwardLightningScene.h; sourceTree = "<group>"; };
+		C935012B24DDBD56002A049A /* ForwardLightningScene.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ForwardLightningScene.m; sourceTree = "<group>"; };
 		C93EF7C424DE96EC008E4461 /* TexturedMeshShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TexturedMeshShaders.metal; sourceTree = "<group>"; };
 		C93EF7C624DE9705008E4461 /* TexturedMeshUniforms.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TexturedMeshUniforms.h; sourceTree = "<group>"; };
 		C93EF7C824DE9B23008E4461 /* rock1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = rock1.png; sourceTree = "<group>"; };
@@ -41,10 +43,10 @@
 		C93EF7CD24DE9ED9008E4461 /* grass2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = grass2.png; sourceTree = "<group>"; };
 		C93EF7D224DEA542008E4461 /* wood1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood1.png; sourceTree = "<group>"; };
 		C93EF7D324DEA542008E4461 /* wood2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood2.png; sourceTree = "<group>"; };
-		C93EF7D824DEBB3B008E4461 /* TexturedVertex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TexturedVertex.h; sourceTree = "<group>"; };
+		C93EF7D824DEBB3B008E4461 /* VertexNUV.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VertexNUV.h; sourceTree = "<group>"; };
 		C93EF7DC24DECD9E008E4461 /* math_utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = math_utils.h; sourceTree = "<group>"; };
 		C93EF7DD24DECDAF008E4461 /* math_utils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = math_utils.m; sourceTree = "<group>"; };
-		C93EF7DF24DF0FF0008E4461 /* placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = placeholder.png; sourceTree = "<group>"; };
+		C93EF7DF24DF0FF0008E4461 /* placeholder0.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = placeholder0.png; sourceTree = "<group>"; };
 		C94B062B24DBDBE50050EFA3 /* Learn Metal Graphics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Learn Metal Graphics.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C94B062E24DBDBE50050EFA3 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		C94B062F24DBDBE50050EFA3 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -63,6 +65,9 @@
 		C94B064C24DBDF340050EFA3 /* SceneRenderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SceneRenderer.m; sourceTree = "<group>"; };
 		C94B064E24DC4D140050EFA3 /* Scene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Scene.h; sourceTree = "<group>"; };
 		C94B064F24DC4D140050EFA3 /* Scene.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Scene.m; sourceTree = "<group>"; };
+		C95D2C8125B341BB00CF8E22 /* PointLight.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PointLight.h; sourceTree = "<group>"; };
+		C9898AE424E46B4E00CDE2B3 /* placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = placeholder.png; sourceTree = "<group>"; };
+		C9CF232624E08E380005B049 /* TexturedMeshShadersArg.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TexturedMeshShadersArg.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,7 +93,8 @@
 				C93EF7CD24DE9ED9008E4461 /* grass2.png */,
 				C93EF7D224DEA542008E4461 /* wood1.png */,
 				C93EF7D324DEA542008E4461 /* wood2.png */,
-				C93EF7DF24DF0FF0008E4461 /* placeholder.png */,
+				C93EF7DF24DF0FF0008E4461 /* placeholder0.png */,
+				C9898AE424E46B4E00CDE2B3 /* placeholder.png */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -96,20 +102,22 @@
 		C93EF7D624DEBAFE008E4461 /* Shared data */ = {
 			isa = PBXGroup;
 			children = (
-				C93EF7D824DEBB3B008E4461 /* TexturedVertex.h */,
+				C93EF7D824DEBB3B008E4461 /* VertexNUV.h */,
+				C95D2C8125B341BB00CF8E22 /* PointLight.h */,
 			);
 			name = "Shared data";
 			sourceTree = "<group>";
 		};
-		C93EF7D724DEBB14008E4461 /* Multiple objects */ = {
+		C93EF7D724DEBB14008E4461 /* Forward lightning */ = {
 			isa = PBXGroup;
 			children = (
-				C935012A24DDBD56002A049A /* MultipleObjectsScene.h */,
-				C935012B24DDBD56002A049A /* MultipleObjectsScene.m */,
+				C935012A24DDBD56002A049A /* ForwardLightningScene.h */,
+				C935012B24DDBD56002A049A /* ForwardLightningScene.m */,
 				C93EF7C624DE9705008E4461 /* TexturedMeshUniforms.h */,
 				C93EF7C424DE96EC008E4461 /* TexturedMeshShaders.metal */,
+				C9CF232624E08E380005B049 /* TexturedMeshShadersArg.metal */,
 			);
-			name = "Multiple objects";
+			name = "Forward lightning";
 			sourceTree = "<group>";
 		};
 		C93EF7DA24DECD5E008E4461 /* Math utils */ = {
@@ -148,9 +156,7 @@
 				C93EF7C724DE98CF008E4461 /* Resources */,
 				C93EF7DA24DECD5E008E4461 /* Math utils */,
 				C93EF7D624DEBAFE008E4461 /* Shared data */,
-				C94B064E24DC4D140050EFA3 /* Scene.h */,
-				C94B064F24DC4D140050EFA3 /* Scene.m */,
-				C93EF7D724DEBB14008E4461 /* Multiple objects */,
+				C95D2C7E25B31C1E00CF8E22 /* Scene */,
 				C94B064B24DBDF340050EFA3 /* SceneRenderer.h */,
 				C94B064C24DBDF340050EFA3 /* SceneRenderer.m */,
 				C94B064624DBDC640050EFA3 /* MainWindowController.h */,
@@ -171,6 +177,16 @@
 				C94B064224DBDC050050EFA3 /* MetalPerformanceShaders.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		C95D2C7E25B31C1E00CF8E22 /* Scene */ = {
+			isa = PBXGroup;
+			children = (
+				C94B064E24DC4D140050EFA3 /* Scene.h */,
+				C94B064F24DC4D140050EFA3 /* Scene.m */,
+				C93EF7D724DEBB14008E4461 /* Forward lightning */,
+			);
+			name = Scene;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -199,7 +215,7 @@
 		C94B062324DBDBE50050EFA3 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1160;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = "Eugene Lutz";
 				TargetAttributes = {
 					C94B062A24DBDBE50050EFA3 = {
@@ -233,12 +249,13 @@
 				C93EF7CF24DE9ED9008E4461 /* grass2.png in Resources */,
 				C93EF7D524DEA542008E4461 /* wood2.png in Resources */,
 				C93EF7CE24DE9ED9008E4461 /* grass1.png in Resources */,
-				C93EF7E024DF0FF0008E4461 /* placeholder.png in Resources */,
+				C93EF7E024DF0FF0008E4461 /* placeholder0.png in Resources */,
 				C93EF7CA24DE9B24008E4461 /* rock1.png in Resources */,
 				C94B063224DBDBE70050EFA3 /* Assets.xcassets in Resources */,
 				C93EF7D424DEA542008E4461 /* wood1.png in Resources */,
 				C93EF7CB24DE9B24008E4461 /* rock2.png in Resources */,
 				C94B064A24DBDC640050EFA3 /* MainWindowController.xib in Resources */,
+				C9898AE524E46B4E00CDE2B3 /* placeholder.png in Resources */,
 				C94B063524DBDBE70050EFA3 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -256,8 +273,9 @@
 				C94B063024DBDBE50050EFA3 /* AppDelegate.m in Sources */,
 				C94B064D24DBDF340050EFA3 /* SceneRenderer.m in Sources */,
 				C94B065024DC4D140050EFA3 /* Scene.m in Sources */,
+				C9CF232724E08E380005B049 /* TexturedMeshShadersArg.metal in Sources */,
 				C93EF7C524DE96EC008E4461 /* TexturedMeshShaders.metal in Sources */,
-				C935012C24DDBD56002A049A /* MultipleObjectsScene.m in Sources */,
+				C935012C24DDBD56002A049A /* ForwardLightningScene.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +319,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -325,7 +344,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -359,6 +377,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -377,7 +396,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -389,6 +407,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Learn Metal Graphics/Learn_Metal_Graphics.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 7N525N28LV;
@@ -408,6 +427,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Learn Metal Graphics/Learn_Metal_Graphics.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 7N525N28LV;

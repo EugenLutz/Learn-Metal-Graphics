@@ -25,12 +25,12 @@
 - (void)_initBaseSceneCommon
 {
 	_automaticallyRotateScene = YES;
-	_automaticRotationRate = (float)(M_PI / 10.0);
+	_automaticRotationRate = (float)(M_PI / 15.0);
 	
 	
 	// MARK: camera settings
 	_cameraPosition = simd_make_float3(0.0f, 0.0f, 0.0f);
-	_cameraRotation = simd_make_float3(M_PI / 8.0f, 0.0f, 0.0f);
+	_cameraRotation = simd_make_float3(M_PI / 8.0f, -M_PI / 1.2f, 0.0f);
 	_cameraZOffset = 2.0f;
 	_viewMatrix = matrix_identity_float4x4;
 	
@@ -43,6 +43,11 @@
 	
 	[self _recalculateViewMatrix];
 	[self _recalculateProjectionMatrix];
+}
+
+- (void)setup
+{
+	// implemented by subclass
 }
 
 - (void)drawableResized:(simd_float2)size
@@ -66,8 +71,16 @@
 {
 	if (_automaticallyRotateScene)
 	{
+		const float twoPi = (float)(M_PI * 2.0);
+		
 		simd_float3 rotation = _cameraRotation;
 		rotation.y -= (float)(_automaticRotationRate * timeElapsed);
+		while (rotation.y < 0) {
+			rotation.y += twoPi;
+		}
+		while (rotation.y > twoPi) {
+			rotation.y -= twoPi;
+		}
 		self.cameraRotation = rotation;
 	}
 	

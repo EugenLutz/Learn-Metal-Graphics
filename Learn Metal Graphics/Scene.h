@@ -18,6 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithSceneRenderer:(SceneRenderer*)sceneRenderer;
 
+- (void)setup;
 - (void)drawableResized:(simd_float2)size;
 
 - (void)keyDown:(unsigned int)keyCode;

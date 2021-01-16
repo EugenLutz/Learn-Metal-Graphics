@@ -8,8 +8,8 @@
 
 #import "SceneRenderer.h"
 #import "Scene.h"
-#import "MultipleObjectsScene.h"
-#include "TexturedVertex.h"
+#import "ForwardLightningScene.h"
+#include "VertexNUV.h"
 #include <simd/simd.h>
 
 @implementation SceneRenderer
@@ -33,6 +33,32 @@
 		[self _initCommon];
 	}
 	return self;
+}
+
+- (MTLRenderPipelineDescriptor*)_createDefaultRenderPipelineDescriptor
+{
+	MTLRenderPipelineDescriptor* renderPipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+	renderPipelineDescriptor.rasterSampleCount = _defaultRasterSampleCount;
+	renderPipelineDescriptor.colorAttachments[0].pixelFormat = _defaultColorPixelFormat;
+
+	// RGB =   (Source.rgb * <sourceRGBBlendFactor>)  <rgbBlendOperation>  (Dest.rgb * <destinationRGBBlendFactor>)
+	// Alpha = (Source.a * <sourceAlphaBlendFactor>) <alphaBlendOperation> (Dest.a * <destinationAlphaBlendFactor>)
+	 
+	renderPipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
+	
+	renderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+	renderPipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+	renderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+	
+	renderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+	renderPipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+	renderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+	
+	
+	renderPipelineDescriptor.depthAttachmentPixelFormat = _defaultDepthStencilPixelFormat;
+	renderPipelineDescriptor.stencilAttachmentPixelFormat = _defaultDepthStencilPixelFormat;
+	
+	return renderPipelineDescriptor;
 }
 
 - (void)_initCommon
@@ -71,7 +97,7 @@
 	assert(_defaultDepthStencilState);
 	
 	
-	// MARK: setup render pipeline state
+	// MARK: setup default render pipeline state
 	id<MTLLibrary> library = _defaultLibrary;
 	
 	id<MTLFunction> vertexFunction = [library newFunctionWithName:@"defaultTexturedCubeVertexShader"];
@@ -83,32 +109,28 @@
 	_defaultRasterSampleCount = _metalKitView.sampleCount;
 	_defaultColorPixelFormat = _metalKitView.colorPixelFormat;
 	
-	MTLRenderPipelineDescriptor* renderPipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+	MTLRenderPipelineDescriptor* renderPipelineDescriptor = [self _createDefaultRenderPipelineDescriptor];
 	renderPipelineDescriptor.label = @"Textured mesh renderer";
 	renderPipelineDescriptor.vertexFunction = vertexFunction;
 	renderPipelineDescriptor.fragmentFunction = fragmentFunction;
-	renderPipelineDescriptor.rasterSampleCount = _defaultRasterSampleCount;
-	renderPipelineDescriptor.colorAttachments[0].pixelFormat = _defaultColorPixelFormat;
-
-	// RGB =   (Source.rgb * <sourceRGBBlendFactor>)  <rgbBlendOperation>  (Dest.rgb * <destinationRGBBlendFactor>)
-	// Alpha = (Source.a * <sourceAlphaBlendFactor>) <alphaBlendOperation> (Dest.a * <destinationAlphaBlendFactor>)
-	 
-	renderPipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
-	
-	renderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-	renderPipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-	renderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-	
-	renderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
-	renderPipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
-	renderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-	
-	
-	renderPipelineDescriptor.depthAttachmentPixelFormat = _defaultDepthStencilPixelFormat;
-	renderPipelineDescriptor.stencilAttachmentPixelFormat = _defaultDepthStencilPixelFormat;
-	
 	NSError* error = nil;
 	_defaultDrawTexturedMeshState = [_device newRenderPipelineStateWithDescriptor:renderPipelineDescriptor error:&error];
+	assert(_defaultDrawTexturedMeshState);
+	
+	
+	// MARK: setup default render pipeline state with argument buffer
+	vertexFunction = [library newFunctionWithName:@"defaultArgumentedTexturedCubeVertexShader"];
+	assert(vertexFunction);
+	
+	fragmentFunction = [library newFunctionWithName:@"defaultArgumentedTexturedCubeFragmentShader"];
+	assert(fragmentFunction);
+	
+	renderPipelineDescriptor = [self _createDefaultRenderPipelineDescriptor];
+	renderPipelineDescriptor.label = @"Textured mesh renderer with argument buffer";
+	renderPipelineDescriptor.vertexFunction = vertexFunction;
+	renderPipelineDescriptor.fragmentFunction = fragmentFunction;
+	_defaultDrawArgumentedTexturedMeshState = [_device newRenderPipelineStateWithDescriptor:renderPipelineDescriptor error:&error];
+	assert(_defaultDrawArgumentedTexturedMeshState);
 	
 	
 	// MARK: setup sampler state
@@ -116,6 +138,9 @@
 	samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear;
 	samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear;
 	samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear;
+	samplerDescriptor.sAddressMode = MTLSamplerAddressModeRepeat;
+	samplerDescriptor.tAddressMode = MTLSamplerAddressModeRepeat;
+	samplerDescriptor.rAddressMode = MTLSamplerAddressModeRepeat;
 	samplerDescriptor.compareFunction = MTLCompareFunctionLess;
 	samplerDescriptor.maxAnisotropy = 16;
 	_defaultLinearMipMapMaxAnisotropicSampler = [_device newSamplerStateWithDescriptor:samplerDescriptor];
@@ -173,18 +198,34 @@
 	// MARK: create vertex buffers and schedule for uploading
 	// Create textured cube vertex buffer
 	const float val = 0.5f;
-	const vector_float3 cv[] = {
+	const simd_float3 cv[] = {
 		{ -val, -val,  val }, {  val, -val,  val }, {  val,  val,  val }, { -val,  val,  val },	// Front
 		{  val, -val, -val }, { -val, -val, -val }, { -val,  val, -val }, {  val,  val, -val }	// Back
 	};
+	const simd_float3 cn[] = {
+		simd_normalize(cv[0]), simd_normalize(cv[1]), simd_normalize(cv[2]), simd_normalize(cv[3]),	// Front
+		simd_normalize(cv[4]), simd_normalize(cv[5]), simd_normalize(cv[6]), simd_normalize(cv[7])	// Back
+	};
 	const simd_float2 uv[] = { { 0.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f } };
-	const TEXTURED_VERTEX texturedCubeVertices[] = {	// Counterclockwise triangles
-		{cv[3],uv[3]}, {cv[0],uv[0]}, {cv[1],uv[1]}, {cv[1],uv[1]}, {cv[2],uv[2]}, {cv[3],uv[3]},	// Front
-		{cv[2],uv[3]}, {cv[1],uv[0]}, {cv[4],uv[1]}, {cv[4],uv[1]}, {cv[7],uv[2]}, {cv[2],uv[3]},	// Right
-		{cv[7],uv[3]}, {cv[4],uv[0]}, {cv[5],uv[1]}, {cv[5],uv[1]}, {cv[6],uv[2]}, {cv[7],uv[3]},	// Back
-		{cv[6],uv[3]}, {cv[5],uv[0]}, {cv[0],uv[1]}, {cv[0],uv[1]}, {cv[3],uv[2]}, {cv[6],uv[3]},	// Left
-		{cv[6],uv[3]}, {cv[3],uv[0]}, {cv[2],uv[1]}, {cv[2],uv[1]}, {cv[7],uv[2]}, {cv[6],uv[3]},	// Top
-		{cv[0],uv[3]}, {cv[5],uv[0]}, {cv[4],uv[1]}, {cv[4],uv[1]}, {cv[1],uv[2]}, {cv[0],uv[3]}	// Bottom
+	//const simd_float2 uv[] = { { 0.0f, 8.0f }, { 8.0f, 8.0f }, { 8.0f, 0.0f }, { 0.0f, 0.0f } };
+	const VERTEX_NUV texturedCubeVertices[] = {	// Counterclockwise triangles
+		{cv[3],cn[3],uv[3]}, {cv[0],cn[0],uv[0]}, {cv[1],cn[1],uv[1]},
+		{cv[1],cn[1],uv[1]}, {cv[2],cn[2],uv[2]}, {cv[3],cn[3],uv[3]},	// Front
+		
+		{cv[2],cn[2],uv[3]}, {cv[1],cn[1],uv[0]}, {cv[4],cn[4],uv[1]},
+		{cv[4],cn[4],uv[1]}, {cv[7],cn[7],uv[2]}, {cv[2],cn[2],uv[3]},	// Right
+		
+		{cv[7],cn[7],uv[3]}, {cv[4],cn[4],uv[0]}, {cv[5],cn[5],uv[1]},
+		{cv[5],cn[5],uv[1]}, {cv[6],cn[6],uv[2]}, {cv[7],cn[7],uv[3]},	// Back
+		
+		{cv[6],cn[6],uv[3]}, {cv[5],cn[5],uv[0]}, {cv[0],cn[0],uv[1]},
+		{cv[0],cn[0],uv[1]}, {cv[3],cn[3],uv[2]}, {cv[6],cn[6],uv[3]},	// Left
+		
+		{cv[6],cn[6],uv[3]}, {cv[3],cn[3],uv[0]}, {cv[2],cn[2],uv[1]},
+		{cv[2],cn[2],uv[1]}, {cv[7],cn[7],uv[2]}, {cv[6],cn[6],uv[3]},	// Top
+		
+		{cv[0],cn[0],uv[3]}, {cv[5],cn[5],uv[0]}, {cv[4],cn[4],uv[1]},
+		{cv[4],cn[4],uv[1]}, {cv[1],cn[1],uv[2]}, {cv[0],cn[0],uv[3]}	// Bottom
 	};
 	
 	NSUInteger copyBufferLength = sizeof(texturedCubeVertices);
@@ -195,7 +236,7 @@
 	_texturedCubeBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceStorageModePrivate];
 	assert(_texturedCubeBuffer);
 	
-	_numTexturedCubeBufferVertices = copyBufferLength / sizeof(TEXTURED_VERTEX);
+	_numTexturedCubeBufferVertices = copyBufferLength / sizeof(VERTEX_NUV);
 	
 	[uploadDataCommandEncoder copyFromBuffer:copyBuffer sourceOffset:0 toBuffer:_texturedCubeBuffer destinationOffset:0 size:copyBufferLength];
 	
@@ -210,7 +251,8 @@
 	
 	
 	// MARK: scenes
-	_currentScene = [[MultipleObjectsScene alloc] initWithSceneRenderer:self];
+	_currentScene = [[ForwardLightningScene alloc] initWithSceneRenderer:self];
+	[_currentScene setup];
 }
 
 - (MTLRenderPassDescriptor*)renderPassDescriptor
