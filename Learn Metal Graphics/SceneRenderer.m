@@ -8,8 +8,9 @@
 
 #import "SceneRenderer.h"
 #import "Scene.h"
-#import "ForwardLightningScene.h"
-#include "VertexNUV.h"
+#import "ForwardLightingScene.h"
+#import "DeferredLightingScene.h"
+#include "SharedUniforms.h"
 #include <simd/simd.h>
 
 @implementation SceneRenderer
@@ -64,11 +65,33 @@
 - (void)_initCommon
 {
 	NSLog(@"Selected Device: %@", _device.name);
+	
+	MTLArgumentBuffersTier tier = _device.argumentBuffersSupport;
+	switch (tier)
+	{
+		case MTLArgumentBuffersTier1: NSLog(@"Argument Buffers Tier 1 is supported."); break;
+		case MTLArgumentBuffersTier2: NSLog(@"Argument Buffers Tier 2 is supported."); break;
+		default: NSLog(@"Argument Buffers are not supported."); break;
+	}
+	
+	BOOL supportsRaytracing = _device.supportsRaytracing;
+	if (supportsRaytracing) {
+		NSLog(@"Raytracing is supported.");
+	} else {
+		NSLog(@"Raytracing is not supported.");
+	}
+	
+	NSUInteger maxSamplerCount = _device.maxArgumentBufferSamplerCount;
+	NSLog(@"Max argument buffer sampler count: %ld", maxSamplerCount);
 
 	_numDynamicBuffers = 3;
 	_currentDynamicBuffer = 0;
+	
+	_accessSemaphore = dispatch_semaphore_create(1);
 	_frameBoundarySemaphore = dispatch_semaphore_create(_numDynamicBuffers);
+	
 	_drawableSize = simd_make_float2(_metalKitView.drawableSize.width, _metalKitView.drawableSize.height);
+	_currentDrawableInRenderLoop = nil;
 	
 	// MARK: command queue
 	_commandQueue = [_device newCommandQueue];
@@ -195,6 +218,33 @@
 	id<MTLBlitCommandEncoder> uploadDataCommandEncoder = [uploadCommandBuffer blitCommandEncoder];
 	
 	
+	// MARK: create texturedFullScreenQuadBuffer
+	
+	const VERTEX_UV cubeVertices[] = {
+		// Bottom right
+		{ { -1.0f, -1.0f }, { 0.0f, 1.0f } },
+		{ { 1.0f, -1.0f }, { 1.0f, 1.0f } },
+		{ { 1.0f, 1.0f }, { 1.0f, 0.0f } },
+		
+		// Top left
+		{ { 1.0f, 1.0f }, { 1.0f, 0.0f } },
+		{ { -1.0f, 1.0f }, { 0.0f, 0.0f } },
+		{ { -1.0f, -1.0f }, { 0.0f, 1.0f } }
+	};
+	
+	NSUInteger copyBufferLength = sizeof(cubeVertices);
+	id<MTLBuffer> copyBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceCPUCacheModeDefaultCache];
+	assert(copyBuffer);
+	memcpy(copyBuffer.contents, cubeVertices, copyBufferLength);
+	
+	_texturedFullScreenQuadBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceStorageModePrivate];
+	assert(_texturedFullScreenQuadBuffer);
+	
+	_numTexturedFullScreenQuad = copyBufferLength / sizeof(VERTEX_UV);
+	
+	[uploadDataCommandEncoder copyFromBuffer:copyBuffer sourceOffset:0 toBuffer:_texturedFullScreenQuadBuffer destinationOffset:0 size:copyBufferLength];
+	
+	
 	// MARK: create vertex buffers and schedule for uploading
 	// Create textured cube vertex buffer
 	const float val = 0.5f;
@@ -228,8 +278,8 @@
 		{cv[4],cn[4],uv[1]}, {cv[1],cn[1],uv[2]}, {cv[0],cn[0],uv[3]}	// Bottom
 	};
 	
-	NSUInteger copyBufferLength = sizeof(texturedCubeVertices);
-	id<MTLBuffer> copyBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceCPUCacheModeDefaultCache];
+	copyBufferLength = sizeof(texturedCubeVertices);
+	copyBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceCPUCacheModeDefaultCache];
 	assert(copyBuffer);
 	memcpy(copyBuffer.contents, texturedCubeVertices, copyBufferLength);
 	
@@ -248,11 +298,25 @@
 	
 	// MARK: wait for all vertex buffers uploaded
 	[uploadCommandBuffer waitUntilCompleted];
-	
-	
+		
 	// MARK: scenes
-	_currentScene = [[ForwardLightningScene alloc] initWithSceneRenderer:self];
+#define SCENE_ID 1
+#if SCENE_ID == 0
+	_currentScene = [[ForwardLightingScene alloc] initWithSceneRenderer:self];
+#elif SCENE_ID == 1
+	_currentScene = [[DeferredLightingScene alloc] initWithSceneRenderer:self];
+#endif
 	[_currentScene setup];
+}
+
+- (void)_lock
+{
+	dispatch_semaphore_wait(_accessSemaphore, DISPATCH_TIME_FOREVER);
+}
+
+- (void)_unlock
+{
+	dispatch_semaphore_signal(_accessSemaphore);
 }
 
 - (MTLRenderPassDescriptor*)renderPassDescriptor
@@ -299,7 +363,7 @@
 {
 	// There is no sence to draw anything if drawable is unavailable...
 	// But for now, schedule command to present drawable if it exists.
-	id<CAMetalDrawable> drawable = _metalKitView.currentDrawable;
+	id<CAMetalDrawable> drawable = _currentDrawableInRenderLoop;
 	if (drawable) {
 		[commandBuffer presentDrawable:drawable];
 	}
@@ -312,17 +376,29 @@
 
 - (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size
 {
+	[self _lock];
+	
 	_drawableSize = simd_make_float2(size.width, size.height);
 	[_currentScene drawableResized:_drawableSize];
+	
+	[self _unlock];
 }
 
 - (void)drawInMTKView:(MTKView*)view
 {
+	[self _lock];
+	
 	double currentTime = CACurrentMediaTime();
 	double timeElapsed = currentTime - _lastUpdateTime;
 	_lastUpdateTime = currentTime;
 	
+	_currentDrawableInRenderLoop = _metalKitView.currentDrawable;
+	
 	[_currentScene drawWithCommandQueue:_commandQueue timeElapsed:timeElapsed];
+	
+	_currentDrawableInRenderLoop = nil;
+	
+	[self _unlock];
 	
 	/*
 	// Get current render pass descriptor

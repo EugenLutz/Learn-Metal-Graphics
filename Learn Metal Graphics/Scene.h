@@ -11,6 +11,8 @@
 @import MetalKit;
 @import MetalPerformanceShaders;
 #import "SceneRenderer.h"
+#include "SharedUniforms.h"
+#include "foundation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -30,20 +32,26 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, readonly, weak) SceneRenderer* sceneRenderer;
 
-@property (nonatomic) BOOL automaticallyRotateScene;
-@property (nonatomic) float automaticRotationRate;
+@property (nonatomic) BOOL automaticallyRotateDefaultObject;
+@property (nonatomic) float defaultObjectRotationRate;
+@property (nonatomic) float defaultObjectRotation;
+@property (nonatomic, readonly) matrix4f defaultObjectModelMatrix;
 
-@property (nonatomic) simd_float3 cameraPosition;
-@property (nonatomic) simd_float3 cameraRotation;
+@property (nonatomic) BOOL automaticallyRotateCamera;
+@property (nonatomic) float automaticCameraRotationRate;
+@property (nonatomic) vector3f cameraPosition;
+@property (nonatomic) vector3f cameraRotation;
 @property (nonatomic) float cameraZOffset;
-@property (nonatomic, readonly) simd_float4x4 viewMatrix;
+@property (nonatomic, readonly) matrix4f viewMatrix;
 
 @property (nonatomic) float fovyRadians;
 @property (nonatomic) float nearZ;
 @property (nonatomic) float farZ;
-@property (nonatomic, readonly) simd_float4x4 projectionMatrix;
+@property (nonatomic, readonly) matrix4f projectionMatrix;
 
-@property (nonatomic, readonly) simd_float4x4 viewProjectionMatrix;
+@property (nonatomic, readonly) matrix4f viewProjectionMatrix;
+
+@property (nonatomic, readonly) VIEWPORT_UNIFORMS* viewportUniforms;
 
 @end
 

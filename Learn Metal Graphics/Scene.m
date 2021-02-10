@@ -7,9 +7,11 @@
 //
 
 #import "Scene.h"
-#include "math_utils.h"
 
 @implementation Scene
+{
+	VIEWPORT_UNIFORMS _local_viewportUniforms;
+}
 
 - (instancetype)initWithSceneRenderer:(SceneRenderer*)sceneRenderer
 {
@@ -24,23 +26,30 @@
 
 - (void)_initBaseSceneCommon
 {
-	_automaticallyRotateScene = YES;
-	_automaticRotationRate = (float)(M_PI / 15.0);
+	_automaticallyRotateDefaultObject = YES;
+	_defaultObjectRotationRate = (float)(M_PI / 4.0);
+	_defaultObjectRotation = 0.0f;
+	_defaultObjectModelMatrix = matrix4fIdentity();
 	
+	_automaticallyRotateCamera = YES;
+	_automaticCameraRotationRate = (float)(M_PI / 2.5);
 	
 	// MARK: camera settings
-	_cameraPosition = simd_make_float3(0.0f, 0.0f, 0.0f);
-	_cameraRotation = simd_make_float3(M_PI / 8.0f, -M_PI / 1.2f, 0.0f);
+	_cameraPosition = vector3fCreate(0.0f, 0.0f, 0.0f);
+	_cameraRotation = vector3fCreate(M_PI / 8.0f, -M_PI / 1.2f, 0.0f);
 	_cameraZOffset = 2.0f;
-	_viewMatrix = matrix_identity_float4x4;
+	_viewMatrix = matrix4fIdentity();
 	
 	_fovyRadians = 45.0f * M_PI / 180.0f;
 	_nearZ = 0.05f;
-	_farZ = 100.0f;
-	_projectionMatrix = matrix_identity_float4x4;
+	_farZ = 5.0f;
+	_projectionMatrix = matrix4fIdentity();
 	
-	_viewProjectionMatrix = matrix_identity_float4x4;
+	_viewProjectionMatrix = matrix4fIdentity();
 	
+	_viewportUniforms = &_local_viewportUniforms;
+	
+	[self _recalculateModelMatrix];
 	[self _recalculateViewMatrix];
 	[self _recalculateProjectionMatrix];
 }
@@ -69,19 +78,32 @@
 
 - (void)drawWithCommandQueue:(id<MTLCommandQueue>)commandQueue timeElapsed:(double)timeElapsed
 {
-	if (_automaticallyRotateScene)
+	const float twoPi = (float)(M_PI * 2.0);
+	
+	if (_automaticallyRotateDefaultObject)
 	{
-		const float twoPi = (float)(M_PI * 2.0);
-		
-		simd_float3 rotation = _cameraRotation;
-		rotation.y -= (float)(_automaticRotationRate * timeElapsed);
-		while (rotation.y < 0) {
+		_defaultObjectRotation += (float)(_defaultObjectRotationRate * timeElapsed);
+		while (_defaultObjectRotation < 0.0f) {
+			_defaultObjectRotation += twoPi;
+		}
+		while (_defaultObjectRotation > twoPi) {
+			_defaultObjectRotation -= twoPi;
+		}
+		[self _recalculateModelMatrix];
+	}
+	
+	if (_automaticallyRotateCamera)
+	{
+		vector3f rotation = _cameraRotation;
+		rotation.y -= (float)(_automaticCameraRotationRate * timeElapsed);
+		while (rotation.y < 0.0f) {
 			rotation.y += twoPi;
 		}
 		while (rotation.y > twoPi) {
 			rotation.y -= twoPi;
 		}
 		self.cameraRotation = rotation;
+		[self _recalculateViewMatrix];
 	}
 	
 	id<MTLCommandBuffer> commandBuffer = [_sceneRenderer beginFrameWithNewCommandBufferAndOccupyRenderer];
@@ -113,37 +135,47 @@
 
 // MARK: - Properties
 
+- (void)_recalculateModelMatrix
+{
+	_defaultObjectModelMatrix = matrix4fRotationY(_defaultObjectRotation);
+}
+
 - (void)_recalculateViewMatrix
 {
-	simd_float4x4 translation = matrixTranslation(-_cameraPosition.x, -_cameraPosition.y, -_cameraPosition.z);
-	simd_float4x4 rotation = matrix_identity_float4x4;
-	rotation = matrix_multiply(matrixRotation(_cameraRotation.y, 0.0f, 1.0f, 0.0f), rotation);
-	rotation = matrix_multiply(matrixRotation(_cameraRotation.x, 1.0f, 0.0f, 0.0f), rotation);
-	rotation = matrix_multiply(matrixRotation(_cameraRotation.z, 0.0f, 0.0f, 1.0f), rotation);
+	matrix4f translation = matrix4fTranslation(-_cameraPosition.x, -_cameraPosition.y, -_cameraPosition.z);
+	matrix4f rotation = matrix4fIdentity();
+	rotation = matrix4fMul(matrix4fRotationY(_cameraRotation.y), rotation);
+	rotation = matrix4fMul(matrix4fRotationX(_cameraRotation.x), rotation);
+	rotation = matrix4fMul(matrix4fRotationZ(_cameraRotation.z), rotation);
 	
-	simd_float4x4 offsetTranslation = matrixTranslation(0.0f, 0.0f, -_cameraZOffset);
+	matrix4f offsetTranslation = matrix4fTranslation(0.0f, 0.0f, -_cameraZOffset);
 	
-	self.viewMatrix = matrix_multiply(offsetTranslation, matrix_multiply(rotation, translation));
+	_viewMatrix = matrix4fMul(offsetTranslation, matrix4fMul(rotation, translation));
+	[self _recalculateViewProjectionMatrix];
+	_local_viewportUniforms.view = _viewMatrix;
 }
 
 - (void)_recalculateProjectionMatrix
 {
 	float aspect = _sceneRenderer.drawableSize.x / _sceneRenderer.drawableSize.y;
-	self.projectionMatrix = matrixPerspectiveRightHand(_fovyRadians, aspect, _nearZ, _farZ);
+	_projectionMatrix = matrix4fPerspectiveRightHand_MetalNDC(_fovyRadians, aspect, _nearZ, _farZ);
+	[self _recalculateViewProjectionMatrix];
+	_local_viewportUniforms.projection = _projectionMatrix;
 }
 
 - (void)_recalculateViewProjectionMatrix
 {
-	_viewProjectionMatrix = simd_mul(_projectionMatrix, _viewMatrix);
+	_viewProjectionMatrix = matrix4fMul(_projectionMatrix, _viewMatrix);
+	_local_viewportUniforms.viewProjection = _viewProjectionMatrix;
 }
 
-- (void)setCameraPosition:(simd_float3)cameraPosition
+- (void)setCameraPosition:(vector3f)cameraPosition
 {
 	_cameraPosition = cameraPosition;
 	[self _recalculateViewMatrix];
 }
 
-- (void)setCameraRotation:(simd_float3)cameraRotation
+- (void)setCameraRotation:(vector3f)cameraRotation
 {
 	_cameraRotation = cameraRotation;
 	[self _recalculateViewMatrix];
@@ -153,12 +185,6 @@
 {
 	_cameraZOffset = cameraZOffset;
 	[self _recalculateViewMatrix];
-}
-
-- (void)setViewMatrix:(simd_float4x4)viewMatrix
-{
-	_viewMatrix = viewMatrix;
-	[self _recalculateViewProjectionMatrix];
 }
 
 - (void)setFovyRadians:(float)fovyRadians
@@ -177,12 +203,6 @@
 {
 	_farZ = farZ;
 	[self _recalculateProjectionMatrix];
-}
-
-- (void)setProjectionMatrix:(simd_float4x4)projectionMatrix
-{
-	_projectionMatrix = projectionMatrix;
-	[self _recalculateViewProjectionMatrix];
 }
 
 @end

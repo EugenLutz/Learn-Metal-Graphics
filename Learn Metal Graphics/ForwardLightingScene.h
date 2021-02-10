@@ -1,5 +1,5 @@
 //
-//  ForwardLightningScene.h
+//  ForwardLightingScene.h
 //  Learn Metal Graphics
 //
 //  Created by Евгений Лютц on 07.08.20.
@@ -7,11 +7,10 @@
 //
 
 #import "Scene.h"
-#include "TexturedMeshUniforms.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface ForwardLightningScene : Scene
+@interface ForwardLightingScene : Scene
 
 @property (nonatomic) BOOL useInstanceIndex;
 @property (nonatomic) BOOL useArgumentBuffer;

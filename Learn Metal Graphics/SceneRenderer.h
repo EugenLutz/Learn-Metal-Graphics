@@ -44,14 +44,20 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) id<MTLTexture> wood2Texture;
 @property (nonatomic, readonly) id<MTLTexture> placeholderTexture;
 
+@property (nonatomic, readonly) id<MTLBuffer> texturedFullScreenQuadBuffer;
+@property (nonatomic, readonly) NSUInteger numTexturedFullScreenQuad;
+
 @property (nonatomic, readonly) id<MTLBuffer> texturedCubeBuffer;
 @property (nonatomic, readonly) NSUInteger numTexturedCubeBufferVertices;
 
 @property (nonatomic, readonly) NSUInteger numDynamicBuffers;
 @property (nonatomic, readonly) NSUInteger currentDynamicBuffer;
 
+@property (nonatomic, readonly) dispatch_semaphore_t accessSemaphore;
 @property (nonatomic, readonly) dispatch_semaphore_t frameBoundarySemaphore;
+
 @property (nonatomic, readonly) simd_float2 drawableSize;
+@property (nonatomic, readonly) id<CAMetalDrawable> currentDrawableInRenderLoop;
 
 @end
 

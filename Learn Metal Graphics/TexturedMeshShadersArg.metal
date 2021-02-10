@@ -9,8 +9,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-#include "TexturedMeshUniforms.h"
-
+#include "SharedUniforms.h"
 
 kernel void processCubeUniforms(uint id [[ thread_position_in_grid ]],
 								constant float4x4* modelTransform [[ buffer(0) ]],
