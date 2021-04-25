@@ -246,18 +246,21 @@
 	
 	
 	// MARK: create vertex buffers and schedule for uploading
+#define CUBE_SMOOTH_CORNERS 1
 	// Create textured cube vertex buffer
 	const float val = 0.5f;
 	const simd_float3 cv[] = {
 		{ -val, -val,  val }, {  val, -val,  val }, {  val,  val,  val }, { -val,  val,  val },	// Front
 		{  val, -val, -val }, { -val, -val, -val }, { -val,  val, -val }, {  val,  val, -val }	// Back
 	};
+#if CUBE_SMOOTH_CORNERS
 	const simd_float3 cn[] = {
 		simd_normalize(cv[0]), simd_normalize(cv[1]), simd_normalize(cv[2]), simd_normalize(cv[3]),	// Front
 		simd_normalize(cv[4]), simd_normalize(cv[5]), simd_normalize(cv[6]), simd_normalize(cv[7])	// Back
 	};
+#endif
 	const simd_float2 uv[] = { { 0.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f } };
-	//const simd_float2 uv[] = { { 0.0f, 8.0f }, { 8.0f, 8.0f }, { 8.0f, 0.0f }, { 0.0f, 0.0f } };
+#if CUBE_SMOOTH_CORNERS
 	const VERTEX_NUV texturedCubeVertices[] = {	// Counterclockwise triangles
 		{cv[3],cn[3],uv[3]}, {cv[0],cn[0],uv[0]}, {cv[1],cn[1],uv[1]},
 		{cv[1],cn[1],uv[1]}, {cv[2],cn[2],uv[2]}, {cv[3],cn[3],uv[3]},	// Front
@@ -277,19 +280,121 @@
 		{cv[0],cn[0],uv[3]}, {cv[5],cn[5],uv[0]}, {cv[4],cn[4],uv[1]},
 		{cv[4],cn[4],uv[1]}, {cv[1],cn[1],uv[2]}, {cv[0],cn[0],uv[3]}	// Bottom
 	};
+#else
+	const simd_float3 cn[] = {
+		{ 0.0f, 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },	// top-bottom
+		{ 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f },	// front-back
+		{ -1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }		// left-right
+	};
+	const VERTEX_NUV texturedCubeVertices[] = {	// Counterclockwise triangles
+		{cv[3],cn[2],uv[3]}, {cv[0],cn[2],uv[0]}, {cv[1],cn[2],uv[1]},
+		{cv[1],cn[2],uv[1]}, {cv[2],cn[2],uv[2]}, {cv[3],cn[2],uv[3]},	// Front
+		
+		{cv[2],cn[5],uv[3]}, {cv[1],cn[5],uv[0]}, {cv[4],cn[5],uv[1]},
+		{cv[4],cn[5],uv[1]}, {cv[7],cn[5],uv[2]}, {cv[2],cn[5],uv[3]},	// Right
+		
+		{cv[7],cn[3],uv[3]}, {cv[4],cn[3],uv[0]}, {cv[5],cn[3],uv[1]},
+		{cv[5],cn[3],uv[1]}, {cv[6],cn[3],uv[2]}, {cv[7],cn[3],uv[3]},	// Back
+		
+		{cv[6],cn[4],uv[3]}, {cv[5],cn[4],uv[0]}, {cv[0],cn[4],uv[1]},
+		{cv[0],cn[4],uv[1]}, {cv[3],cn[4],uv[2]}, {cv[6],cn[4],uv[3]},	// Left
+		
+		{cv[6],cn[0],uv[3]}, {cv[3],cn[0],uv[0]}, {cv[2],cn[0],uv[1]},
+		{cv[2],cn[0],uv[1]}, {cv[7],cn[0],uv[2]}, {cv[6],cn[0],uv[3]},	// Top
+		
+		{cv[0],cn[1],uv[3]}, {cv[5],cn[1],uv[0]}, {cv[4],cn[1],uv[1]},
+		{cv[4],cn[1],uv[1]}, {cv[1],cn[1],uv[2]}, {cv[0],cn[1],uv[3]}	// Bottom
+	};
+#endif
 	
 	copyBufferLength = sizeof(texturedCubeVertices);
 	copyBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceCPUCacheModeDefaultCache];
 	assert(copyBuffer);
 	memcpy(copyBuffer.contents, texturedCubeVertices, copyBufferLength);
 	
-	_texturedCubeBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceStorageModePrivate];
-	assert(_texturedCubeBuffer);
+	_cubeNUVBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceStorageModePrivate];
+	assert(_cubeNUVBuffer);
 	
-	_numTexturedCubeBufferVertices = copyBufferLength / sizeof(VERTEX_NUV);
+	_numCubeNUVBufferVertices = copyBufferLength / sizeof(VERTEX_NUV);
 	
-	[uploadDataCommandEncoder copyFromBuffer:copyBuffer sourceOffset:0 toBuffer:_texturedCubeBuffer destinationOffset:0 size:copyBufferLength];
+	[uploadDataCommandEncoder copyFromBuffer:copyBuffer sourceOffset:0 toBuffer:_cubeNUVBuffer destinationOffset:0 size:copyBufferLength];
 	
+	// MARK: Icosahedron
+	
+	simd_float3 icosahedronMeshVertices[] =
+	{
+		texturedCubeVertices[0].position, texturedCubeVertices[1].position, texturedCubeVertices[2].position,
+		texturedCubeVertices[3].position, texturedCubeVertices[4].position, texturedCubeVertices[5].position,
+		
+		texturedCubeVertices[6].position, texturedCubeVertices[7].position, texturedCubeVertices[8].position,
+		texturedCubeVertices[9].position, texturedCubeVertices[10].position, texturedCubeVertices[11].position,
+		
+		texturedCubeVertices[12].position, texturedCubeVertices[13].position, texturedCubeVertices[14].position,
+		texturedCubeVertices[15].position, texturedCubeVertices[16].position, texturedCubeVertices[17].position,
+		
+		texturedCubeVertices[18].position, texturedCubeVertices[19].position, texturedCubeVertices[20].position,
+		texturedCubeVertices[21].position, texturedCubeVertices[22].position, texturedCubeVertices[23].position,
+		
+		texturedCubeVertices[24].position, texturedCubeVertices[25].position, texturedCubeVertices[26].position,
+		texturedCubeVertices[27].position, texturedCubeVertices[28].position, texturedCubeVertices[29].position,
+		
+		texturedCubeVertices[30].position, texturedCubeVertices[31].position, texturedCubeVertices[32].position,
+		texturedCubeVertices[33].position, texturedCubeVertices[34].position, texturedCubeVertices[35].position
+	};
+	{
+		unsigned int numItems = sizeof(icosahedronMeshVertices) / sizeof(simd_float3);
+		for (unsigned int i = 0; i < numItems; i++)
+		{
+			simd_float3 value = icosahedronMeshVertices[i];
+			
+			if (value.x < 0) { value.x = -1.0f; }
+			if (value.x > 0) { value.x = 1.0f; }
+			
+			if (value.y < 0) { value.y = -1.0f; }
+			if (value.y > 0) { value.y = 1.0f; }
+			
+			if (value.z < 0) { value.z = -1.0f; }
+			if (value.z > 0) { value.z = 1.0f; }
+			
+			icosahedronMeshVertices[i] = value;
+		}
+	}
+	
+	copyBufferLength = sizeof(icosahedronMeshVertices);
+	copyBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceCPUCacheModeDefaultCache];
+	assert(copyBuffer);
+	memcpy(copyBuffer.contents, icosahedronMeshVertices, copyBufferLength);
+	
+	_icosahedronMeshBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceStorageModePrivate];
+	assert(_icosahedronMeshBuffer);
+	
+	_numIcosahedronMeshBufferVertices = copyBufferLength / sizeof(simd_float3);
+	
+	[uploadDataCommandEncoder copyFromBuffer:copyBuffer sourceOffset:0 toBuffer:_icosahedronMeshBuffer destinationOffset:0 size:copyBufferLength];
+	
+	// MARK: Point lights
+	
+	const POINT_LIGHT pointLights[] =
+	{
+		{ { -0.56f, 0.56f, -0.56f }, { 0.4f, 0.4f, 0.0f }, 0.4f },
+		{ { 0.56f, 0.56f, -0.56f }, { 0.4f, 0.0f, 0.2f }, 0.8f },
+		{ { -0.51f, 0.51f, 0.51f }, { 0.6f, 0.2f, 0.2f }, 0.2f },
+		{ { 0.0f, 0.6f, 0.0f }, { 0.6f, 0.2f, 0.6f }, 0.3f },
+		{ { -0.51f, 0.2f, 0.51f }, { 0.6f, 0.2f, 0.2f }, 0.4f },
+		{ { 0.56f, 0.1f, 0.56f }, { 0.4f, 0.4f, 0.0f }, 0.6f }
+	};
+	
+	copyBufferLength = sizeof(pointLights);
+	copyBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceCPUCacheModeDefaultCache];
+	assert(copyBuffer);
+	memcpy(copyBuffer.contents, pointLights, copyBufferLength);
+	
+	_pointLightsBuffer = [_device newBufferWithLength:copyBufferLength options:MTLResourceStorageModePrivate];
+	assert(_pointLightsBuffer);
+	
+	_numPointLights = copyBufferLength / sizeof(POINT_LIGHT);
+	
+	[uploadDataCommandEncoder copyFromBuffer:copyBuffer sourceOffset:0 toBuffer:_pointLightsBuffer destinationOffset:0 size:copyBufferLength];
 	
 	// MARK: schedule uploading vertex buffers
 	[uploadDataCommandEncoder endEncoding];
@@ -399,42 +504,6 @@
 	_currentDrawableInRenderLoop = nil;
 	
 	[self _unlock];
-	
-	/*
-	// Get current render pass descriptor
-	MTLRenderPassDescriptor* currentRenderPassDescriptor = view.currentRenderPassDescriptor;
-	if (!currentRenderPassDescriptor) {
-		return;
-	}
-	
-	// Occupy renderer by increasing access semaphore
-	dispatch_semaphore_wait(_frameBoundarySemaphore, DISPATCH_TIME_FOREVER);
-	
-	// Increase index of dynamic buffer
-	_currentDynamicBuffer = (_currentDynamicBuffer + 1) % _numDynamicBuffers;
-	
-	// Create render command buffer
-	id<MTLCommandBuffer> renderCommandBuffer = [_commandQueue commandBuffer];
-	__block dispatch_semaphore_t blockFrameBoundarySemaphore = _frameBoundarySemaphore;
-	[renderCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> cmdBuf) {
-		dispatch_semaphore_signal(blockFrameBoundarySemaphore);
-	}];
-	
-	// Create and draw to render command encoder
-	id<MTLRenderCommandEncoder> encoder = [renderCommandBuffer renderCommandEncoderWithDescriptor:currentRenderPassDescriptor];
-	[_currentScene drawWithRenderCommandEncoder:encoder];
-	[encoder endEncoding];
-	
-	// There is no sence to draw anything if drawable is unavailable...
-	// But for now, schedule command to present drawable if it exists.
-	id<CAMetalDrawable> drawable = view.currentDrawable;
-	if (drawable) {
-		[renderCommandBuffer presentDrawable:drawable];
-	}
-	
-	// Send render commands for execution execute to gpu
-	[renderCommandBuffer commit];
-	//*/
 }
 
 @end

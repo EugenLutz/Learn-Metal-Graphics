@@ -10,18 +10,19 @@
 
 @implementation DeferredLightingScene
 {
-	MTLTextureDescriptor* _depthMapTextureDescriptor;
-	id<MTLTexture> _depthMap;
-	
 	MTLTextureDescriptor* _normalMapTextureDescriptor;
 	id<MTLTexture> _normalMap;
 	
-	MTLRenderPassDescriptor* _gBufferPassDescriptor;
-	id<MTLDepthStencilState> _generateNormalMapDepthStencilState;
-	id<MTLRenderPipelineState> _generateNormalMapPipelineState;
+	MTLTextureDescriptor* _depthMapTextureDescriptor;
+	id<MTLTexture> _depthMap;
 	
-	MTLRenderPassDescriptor* _composeRenderPassDescriptor;
-	id<MTLRenderPipelineState> _composePipelineState;
+	MTLRenderPassDescriptor* _singlePassDescriptor;
+	
+	id<MTLDepthStencilState> _gBufferDepthStencilState;
+	id<MTLRenderPipelineState> _gBufferRenderPipelineState;
+	
+	id<MTLDepthStencilState> _pointLightDepthStencilState;
+	id<MTLRenderPipelineState> _pointLightRenderPipelineState;
 	
 	MODEL_UNIFORMS _modelUniforms;
 }
@@ -29,149 +30,208 @@
 - (void)setup
 {
 	self.automaticallyRotateDefaultObject = YES;
-	self.defaultObjectRotationRate = (float)(M_PI / 10.0);
+	self.defaultObjectRotationRate = (float)(M_PI / 5.0);
 	
 	self.automaticallyRotateCamera = NO;
-	self.automaticCameraRotationRate = (float)(M_PI / 10.0);
+	self.automaticCameraRotationRate = (float)(M_PI / 5.0);
+	self.cameraRotation = vector3fCreate(self.cameraRotation.x, 0.0f, self.cameraRotation.z);
+	//self.cameraRotation = vector3fCreate(0.0f, 0.0f, self.cameraRotation.z);
 	
 	id<MTLDevice> device = self.sceneRenderer.device;
 	id<MTLLibrary> defaultLibrary = [device newDefaultLibrary];
 	NSError* error = nil;
 	
-	_depthMapTextureDescriptor = [[MTLTextureDescriptor alloc] init];;
-	_depthMapTextureDescriptor.pixelFormat = self.sceneRenderer.defaultDepthStencilPixelFormat;
-	_depthMapTextureDescriptor.width = (NSUInteger)self.sceneRenderer.drawableSize.x;
-	_depthMapTextureDescriptor.height = (NSUInteger)self.sceneRenderer.drawableSize.y;
-	_depthMapTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-	_depthMapTextureDescriptor.storageMode = MTLStorageModePrivate;
-	_depthMap = [device newTextureWithDescriptor:_depthMapTextureDescriptor];
-	
-	_normalMapTextureDescriptor = [[MTLTextureDescriptor alloc] init];;
-	_normalMapTextureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
+	_normalMapTextureDescriptor = [[MTLTextureDescriptor alloc] init];
+	_normalMapTextureDescriptor.pixelFormat = MTLPixelFormatRGBA8Snorm;
 	_normalMapTextureDescriptor.width = (NSUInteger)self.sceneRenderer.drawableSize.x;
 	_normalMapTextureDescriptor.height = (NSUInteger)self.sceneRenderer.drawableSize.y;
 	_normalMapTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 	_normalMapTextureDescriptor.storageMode = MTLStorageModePrivate;
 	_normalMap = [device newTextureWithDescriptor:_normalMapTextureDescriptor];
+	_normalMap.label = @"Normal Map";
 	
-	_gBufferPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].storeAction = MTLStoreActionDontCare;
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].texture = nil;
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].loadAction = MTLLoadActionClear;
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].storeAction = MTLStoreActionStore;
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].texture = _normalMap;
-	_gBufferPassDescriptor.depthAttachment.texture = _depthMap;
-	_gBufferPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-	_gBufferPassDescriptor.depthAttachment.clearDepth = 1.0;
-	//_gBufferPassDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
-	_gBufferPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-	_gBufferPassDescriptor.stencilAttachment.texture = _depthMap;
-	_gBufferPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
-	_gBufferPassDescriptor.stencilAttachment.clearStencil = 0;
-	//_gBufferPassDescriptor.stencilAttachment.storeAction = MTLStoreActionStore;
-	_gBufferPassDescriptor.stencilAttachment.storeAction = MTLStoreActionDontCare;
+	_depthMapTextureDescriptor = [[MTLTextureDescriptor alloc] init];
+	_depthMapTextureDescriptor.pixelFormat = MTLPixelFormatR32Float;
+	_depthMapTextureDescriptor.width = (NSUInteger)self.sceneRenderer.drawableSize.x;
+	_depthMapTextureDescriptor.height = (NSUInteger)self.sceneRenderer.drawableSize.y;
+	_depthMapTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	_depthMapTextureDescriptor.storageMode = MTLStorageModePrivate;
+	_depthMap = [device newTextureWithDescriptor:_depthMapTextureDescriptor];
+	_depthMap.label = @"Depth Map";
 	
-	MTLStencilDescriptor* stencilStateDesc = nil;
+	_singlePassDescriptor = [[MTLRenderPassDescriptor alloc] init];
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].loadAction = MTLLoadActionClear;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].storeAction = MTLStoreActionStore;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].texture = nil;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].loadAction = MTLLoadActionDontCare;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].storeAction = MTLStoreActionDontCare;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].texture = _normalMap;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].loadAction = MTLLoadActionDontCare;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].storeAction = MTLStoreActionDontCare;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].texture = _depthMap;
+	_singlePassDescriptor.depthAttachment.texture = self.sceneRenderer.metalKitView.depthStencilTexture;
+	_singlePassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+	_singlePassDescriptor.depthAttachment.clearDepth = 1.0;
+	_singlePassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+	_singlePassDescriptor.stencilAttachment.texture = self.sceneRenderer.metalKitView.depthStencilTexture;
+	_singlePassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
+	_singlePassDescriptor.stencilAttachment.clearStencil = 0;
+	_singlePassDescriptor.stencilAttachment.storeAction = MTLStoreActionDontCare;
+	
+	MTLStencilDescriptor* stencilStateDesc = [[MTLStencilDescriptor alloc] init];
+	stencilStateDesc.depthFailureOperation = MTLStencilOperationKeep;
+	stencilStateDesc.stencilCompareFunction = MTLCompareFunctionAlways;
+	stencilStateDesc.stencilFailureOperation = MTLStencilOperationKeep;
+	stencilStateDesc.depthStencilPassOperation = MTLStencilOperationReplace;
+	stencilStateDesc.readMask = 0xFF;
+	stencilStateDesc.writeMask = 0xFF;
 	MTLDepthStencilDescriptor* depthStateDesc = [MTLDepthStencilDescriptor new];
 	depthStateDesc.label = @"G-buffer Creation";
-	depthStateDesc.depthCompareFunction = MTLCompareFunctionLess;
 	depthStateDesc.depthWriteEnabled = YES;
+	depthStateDesc.depthCompareFunction = MTLCompareFunctionLess;
 	depthStateDesc.frontFaceStencil = stencilStateDesc;
-	depthStateDesc.backFaceStencil = stencilStateDesc;
-	_generateNormalMapDepthStencilState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
-	assert(_generateNormalMapDepthStencilState);
+	depthStateDesc.backFaceStencil = nil;
+	_gBufferDepthStencilState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
+	assert(_gBufferDepthStencilState);
 	
 	MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 	pipelineDescriptor.label = @"G-Buffer state";
-	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].pixelFormat = MTLPixelFormatInvalid;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].pixelFormat = self.sceneRenderer.defaultColorPixelFormat;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].blendingEnabled = NO;
 	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].pixelFormat = _normalMapTextureDescriptor.pixelFormat;
-	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].blendingEnabled = YES;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].blendingEnabled = NO;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].pixelFormat = _depthMapTextureDescriptor.pixelFormat;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].blendingEnabled = NO;
 	pipelineDescriptor.depthAttachmentPixelFormat = self.sceneRenderer.defaultDepthStencilPixelFormat;
 	pipelineDescriptor.stencilAttachmentPixelFormat = self.sceneRenderer.defaultDepthStencilPixelFormat;
 	pipelineDescriptor.vertexFunction = [defaultLibrary newFunctionWithName:@"dl_normal_v"];
 	pipelineDescriptor.fragmentFunction = [defaultLibrary newFunctionWithName:@"dl_normal_f"];
-	_generateNormalMapPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+	_gBufferRenderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
 	if (error) {
 		NSLog(@"%@", error.description);
 	}
-	assert(_generateNormalMapPipelineState);
+	assert(_gBufferRenderPipelineState);
 	
-	
-	_composeRenderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
-	_composeRenderPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].storeAction = MTLStoreActionDontCare;
-	_composeRenderPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].texture = nil;
+	// For drawing point lights
+	stencilStateDesc = [[MTLStencilDescriptor alloc] init];
+	stencilStateDesc.depthFailureOperation = MTLStencilOperationKeep;
+	stencilStateDesc.stencilCompareFunction = MTLCompareFunctionEqual;
+	stencilStateDesc.stencilFailureOperation = MTLStencilOperationKeep;
+	stencilStateDesc.depthStencilPassOperation = MTLStencilOperationKeep;
+	stencilStateDesc.readMask = 0b0001;
+	stencilStateDesc.readMask = 0xFF;
+	stencilStateDesc.writeMask = 0x0;
+	depthStateDesc = [MTLDepthStencilDescriptor new];
+	depthStateDesc.label = @"Point light depthStencil state";
+	depthStateDesc.depthWriteEnabled = NO;
+	depthStateDesc.depthCompareFunction = MTLCompareFunctionAlways;
+	depthStateDesc.frontFaceStencil = nil;
+	depthStateDesc.backFaceStencil = stencilStateDesc;
+	_pointLightDepthStencilState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
+	assert(_pointLightDepthStencilState);
 	
 	pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 	pipelineDescriptor.label = @"Compose state";
+	pipelineDescriptor.depthAttachmentPixelFormat = self.sceneRenderer.defaultDepthStencilPixelFormat;
+	pipelineDescriptor.stencilAttachmentPixelFormat = self.sceneRenderer.defaultDepthStencilPixelFormat;
+	pipelineDescriptor.vertexFunction = [defaultLibrary newFunctionWithName:@"dl_pointLight_v"];
+	pipelineDescriptor.fragmentFunction = [defaultLibrary newFunctionWithName:@"dl_pointLight_f"];
 	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].pixelFormat = self.sceneRenderer.defaultColorPixelFormat;
-	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].blendingEnabled = NO;
-	pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
-	pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
-	pipelineDescriptor.vertexFunction = [defaultLibrary newFunctionWithName:@"dl_compose_v"];
-	pipelineDescriptor.fragmentFunction = [defaultLibrary newFunctionWithName:@"dl_compose_f"];
-	_composePipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].blendingEnabled = YES;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].rgbBlendOperation = MTLBlendOperationAdd;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].alphaBlendOperation = MTLBlendOperationAdd;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].destinationRGBBlendFactor = MTLBlendFactorOne;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].destinationAlphaBlendFactor = MTLBlendFactorOne;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].sourceRGBBlendFactor = MTLBlendFactorOne;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].sourceAlphaBlendFactor = MTLBlendFactorOne;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].pixelFormat = _normalMapTextureDescriptor.pixelFormat;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].blendingEnabled = NO;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].pixelFormat = _depthMapTextureDescriptor.pixelFormat;
+	pipelineDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].blendingEnabled = NO;
+	
+	_pointLightRenderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
 	if (error) {
 		NSLog(@"%@", error.description);
 	}
-	assert(_composePipelineState);
+	assert(_pointLightRenderPipelineState);
 }
 
 - (void)drawableResized:(simd_float2)size
 {
 	[super drawableResized:size];
 	
-	_depthMapTextureDescriptor.width = (NSUInteger)size.x;
-	_depthMapTextureDescriptor.height = (NSUInteger)size.y;
-	_depthMap = [self.sceneRenderer.device newTextureWithDescriptor:_depthMapTextureDescriptor];
-	_gBufferPassDescriptor.depthAttachment.texture = _depthMap;
-	_gBufferPassDescriptor.stencilAttachment.texture = _depthMap;
-	
 	_normalMapTextureDescriptor.width = (NSUInteger)size.x;
 	_normalMapTextureDescriptor.height = (NSUInteger)size.y;
 	_normalMap = [self.sceneRenderer.device newTextureWithDescriptor:_normalMapTextureDescriptor];
-	_gBufferPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].texture = _normalMap;
+	_normalMap.label = @"Normal Map";
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_NORMAL].texture = _normalMap;
+	
+	_depthMapTextureDescriptor.width = (NSUInteger)size.x;
+	_depthMapTextureDescriptor.height = (NSUInteger)size.y;
+	_depthMap = [self.sceneRenderer.device newTextureWithDescriptor:_depthMapTextureDescriptor];
+	_depthMap.label = @"Depth Map";
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_DEPTH].texture = _depthMap;
 }
 
 - (void)drawWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer timeElapsed:(double)timeElapsed
 {
 	_modelUniforms.model = self.defaultObjectModelMatrix;
-	_modelUniforms.normal = matrix3fFromMatrix4f(self.defaultObjectModelMatrix);
+	
+	matrix4f normal4 = matrix4fMul(self.viewMatrix, self.defaultObjectModelMatrix);
+	_modelUniforms.normal = matrix3fFromMatrix4f(normal4);
 	
 	id<CAMetalDrawable> drawable = self.sceneRenderer.currentDrawableInRenderLoop;
 	if (!drawable) {
 		return;
 	}
 	
-	{
-		id<MTLRenderCommandEncoder> gBufferCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:_gBufferPassDescriptor];
-		
-		[gBufferCommandEncoder setCullMode:MTLCullModeBack];
-		[gBufferCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-		[gBufferCommandEncoder setStencilReferenceValue:128];
-		[gBufferCommandEncoder setDepthStencilState:_generateNormalMapDepthStencilState];
-		[gBufferCommandEncoder setRenderPipelineState:_generateNormalMapPipelineState];
-		[gBufferCommandEncoder setVertexBuffer:self.sceneRenderer.texturedCubeBuffer offset:0 atIndex:0];
-		[gBufferCommandEncoder setVertexBytes:&_modelUniforms length:sizeof(_modelUniforms) atIndex:1];
-		[gBufferCommandEncoder setVertexBytes:self.viewportUniforms length:sizeof(*self.viewportUniforms) atIndex:2];
-		[gBufferCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numTexturedCubeBufferVertices];
-		
-		[gBufferCommandEncoder endEncoding];
-	}
+	[commandBuffer pushDebugGroup:@"Deferred lighting"];
 	
-	{
-		_composeRenderPassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].texture = drawable.texture;
-		id<MTLRenderCommandEncoder> composeEncoder = [commandBuffer renderCommandEncoderWithDescriptor:_composeRenderPassDescriptor];
-		
-		[composeEncoder setCullMode:MTLCullModeBack];
-		[composeEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-		[composeEncoder setRenderPipelineState:_composePipelineState];
-		[composeEncoder setVertexBuffer:self.sceneRenderer.texturedFullScreenQuadBuffer offset:0 atIndex:0];
-		[composeEncoder setFragmentTexture:_normalMap atIndex:0];
-		[composeEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numTexturedFullScreenQuad];
-		
-		[composeEncoder endEncoding];
-	}
+	_singlePassDescriptor.depthAttachment.texture = self.sceneRenderer.metalKitView.depthStencilTexture;
+	_singlePassDescriptor.stencilAttachment.texture = self.sceneRenderer.metalKitView.depthStencilTexture;
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].texture = drawable.texture;
+	id<MTLRenderCommandEncoder> deferredEncoder = [commandBuffer renderCommandEncoderWithDescriptor:_singlePassDescriptor];
+	
+	[deferredEncoder setCullMode:MTLCullModeBack];
+	[deferredEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+	
+	// Set stencil value to 1 where fragments are drawn
+	[deferredEncoder setDepthStencilState:_gBufferDepthStencilState];
+	[deferredEncoder setStencilReferenceValue:1];
+	
+	[deferredEncoder setRenderPipelineState:_gBufferRenderPipelineState];
+	[deferredEncoder setVertexBuffer:self.sceneRenderer.cubeNUVBuffer offset:0 atIndex:0];
+	[deferredEncoder setVertexBytes:&_modelUniforms length:sizeof(_modelUniforms) atIndex:1];
+	[deferredEncoder setVertexBytes:self.viewportUniforms length:sizeof(*self.viewportUniforms) atIndex:2];
+	[deferredEncoder setFragmentSamplerState:self.sceneRenderer.defaultLinearMipMapMaxAnisotropicSampler atIndex:0];
+	[deferredEncoder setFragmentTexture:self.sceneRenderer.rock1Texture atIndex:0];
+	[deferredEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numCubeNUVBufferVertices];
+	
+	
+	// Drawing lights
+	[deferredEncoder setCullMode:MTLCullModeFront];
+	[deferredEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+	
+	// Execute fragment shader only on fragments, where stencil value equals to 1
+	[deferredEncoder setDepthStencilState:_pointLightDepthStencilState];
+	[deferredEncoder setStencilReferenceValue:1];
+	
+	[deferredEncoder setRenderPipelineState:_pointLightRenderPipelineState];
+	[deferredEncoder setVertexBuffer:self.sceneRenderer.icosahedronMeshBuffer offset:0 atIndex:0];
+	[deferredEncoder setVertexBuffer:self.sceneRenderer.pointLightsBuffer offset:0 atIndex:1];
+	// Buffer already bound:
+	//[deferredEncoder setVertexBytes:self.viewportUniforms length:sizeof(*self.viewportUniforms) atIndex:2];
+	[deferredEncoder setFragmentTexture:_normalMap atIndex:0];
+	[deferredEncoder setFragmentTexture:_depthMap atIndex:1];
+	[deferredEncoder setFragmentBuffer:self.sceneRenderer.pointLightsBuffer offset:0 atIndex:1];
+	[deferredEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numIcosahedronMeshBufferVertices instanceCount:self.sceneRenderer.numPointLights];
+	
+	[deferredEncoder endEncoding];
+	
+	[commandBuffer popDebugGroup];
+	
+	_singlePassDescriptor.colorAttachments[RENDER_TARGET_INDEX_COMPOSE].texture = nil;
 }
 
 @end

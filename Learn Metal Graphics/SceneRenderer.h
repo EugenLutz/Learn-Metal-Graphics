@@ -47,8 +47,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) id<MTLBuffer> texturedFullScreenQuadBuffer;
 @property (nonatomic, readonly) NSUInteger numTexturedFullScreenQuad;
 
-@property (nonatomic, readonly) id<MTLBuffer> texturedCubeBuffer;
-@property (nonatomic, readonly) NSUInteger numTexturedCubeBufferVertices;
+@property (nonatomic, readonly) id<MTLBuffer> cubeNUVBuffer;
+@property (nonatomic, readonly) NSUInteger numCubeNUVBufferVertices;
+
+@property (nonatomic, readonly) id<MTLBuffer> icosahedronMeshBuffer;
+@property (nonatomic, readonly) NSUInteger numIcosahedronMeshBufferVertices;
+
+@property (nonatomic, readonly) id<MTLBuffer> pointLightsBuffer;
+@property (nonatomic, readonly) NSUInteger numPointLights;
 
 @property (nonatomic, readonly) NSUInteger numDynamicBuffers;
 @property (nonatomic, readonly) NSUInteger currentDynamicBuffer;

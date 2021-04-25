@@ -48,6 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) float nearZ;
 @property (nonatomic) float farZ;
 @property (nonatomic, readonly) matrix4f projectionMatrix;
+@property (nonatomic, readonly) matrix4f invertedProjectionMatrix;
 
 @property (nonatomic, readonly) matrix4f viewProjectionMatrix;
 

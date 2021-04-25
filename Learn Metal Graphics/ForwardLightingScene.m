@@ -79,7 +79,7 @@
 		[renderCommandEncoder setCullMode:MTLCullModeBack];
 		[renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
 		
-		[renderCommandEncoder setVertexBuffer:self.sceneRenderer.texturedCubeBuffer offset:0 atIndex:0];
+		[renderCommandEncoder setVertexBuffer:self.sceneRenderer.cubeNUVBuffer offset:0 atIndex:0];
 		[renderCommandEncoder setVertexBytes:&_vertexUniforms length:sizeof(_vertexUniforms) atIndex:1];
 		
 		//[renderCommandEncoder setFragmentTexture:self.sceneRenderer.placeholderTexture atIndex:0];
@@ -87,7 +87,7 @@
 		[renderCommandEncoder setFragmentSamplerState:self.sceneRenderer.defaultLinearMipMapMaxAnisotropicSampler atIndex:0];
 		[renderCommandEncoder setFragmentBytes:&_fragmentUniforms length:sizeof(_fragmentUniforms) atIndex:0];
 		
-		[renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numTexturedCubeBufferVertices];
+		[renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numCubeNUVBufferVertices];
 	}
 }
 

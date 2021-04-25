@@ -11,28 +11,36 @@ using namespace metal;
 
 #include "SharedUniforms.h"
 
+// MARK: - GBuffer pass
 
-// MARK: - Normals
-
-typedef struct NormalIn
+typedef struct GBufferFragmentIn
 {
 	float4 position [[position]];
-	float3 normal;
+	//float3 eye_position;
+	float2 uv;
+	float eye_z;
+	half3 normal;
 }
-NormalIn;
+GBufferFragmentIn;
 
-vertex NormalIn dl_normal_v(uint vid [[ vertex_id ]],
-							 constant VERTEX_NUV* vertexBuffer [[ buffer(0) ]],
-							 constant MODEL_UNIFORMS& uniforms [[ buffer(1) ]],
-							 constant VIEWPORT_UNIFORMS& viewportUniforms [[ buffer(2) ]])
+vertex GBufferFragmentIn dl_normal_v(uint vid [[ vertex_id ]],
+									 constant VERTEX_NUV* vertexBuffer [[ buffer(0) ]],
+									 constant MODEL_UNIFORMS& uniforms [[ buffer(1) ]],
+									 constant VIEWPORT_UNIFORMS& viewportUniforms [[ buffer(2) ]])
 {
-	float4 position = viewportUniforms.viewProjection * uniforms.model * float4(vertexBuffer[vid].position, 1.0f);
-	float3 normal = uniforms.normal * vertexBuffer[vid].normal;
+	constant VERTEX_NUV& vert = vertexBuffer[vid];
+	float4 eye_position = viewportUniforms.view * uniforms.model * float4(vert.position, 1.0f);
+	float3 normal = uniforms.normal * vert.normal;
+	//float4 normal4 = float4(normal, 1);
+	//normal = (viewportUniforms.invertedView * normal4).xyz;
    
-	NormalIn out
+	GBufferFragmentIn out
 	{
-		.position = position,
-		.normal = normal
+		.position = viewportUniforms.projection * eye_position,
+		//.eye_position = eye_position.xyz,
+		.uv = vert.uv,
+		.eye_z = eye_position.z,
+		.normal = half3(normal)
 	};
 
 	return out;
@@ -40,42 +48,91 @@ vertex NormalIn dl_normal_v(uint vid [[ vertex_id ]],
 
 typedef struct NormalFunctionOut
 {
-	float4 color [[ color(RENDER_TARGET_INDEX_NORMAL) ]];
+	half4 albedo [[ color(RENDER_TARGET_INDEX_COMPOSE) ]];
+	half4 normal [[ color(RENDER_TARGET_INDEX_NORMAL) ]];
+	float depth [[ color(RENDER_TARGET_INDEX_DEPTH) ]];
 }
 NormalFunctionOut;
 
-fragment NormalFunctionOut dl_normal_f(NormalIn in [[ stage_in ]])
+fragment NormalFunctionOut dl_normal_f(GBufferFragmentIn in [[ stage_in ]],
+									   sampler textureSampler [[ sampler(0) ]],
+									   texture2d<half> texture [[ texture(0) ]])
 {
 	NormalFunctionOut out;
-	out.color = float4(float3(in.normal), 1.0);
+	out.albedo = half4(texture.sample(textureSampler, in.uv));
+	out.albedo.xyz *= 0.3f;
+	out.normal = half4(normalize(in.normal), 1.0f);
+	//out.depth = in.eye_position.z;
+	out.depth = in.eye_z;
 	return out;
 }
 
+// MARK: - Light mask
 
-// MARK: - Compose
+//
 
-typedef struct ComposeFragmentIn
+// MARK: - Light
+
+typedef struct PointLightFragmentIn
 {
+	uint lightIndex [[ flat ]];
 	float4 position [[ position ]];
-	float2 uv;
+	float3 fragmentPosition_eye;
+	float4 lightLocation_eye;
 }
-ComposeFragmentIn;
+PointLightFragmentIn;
 
-vertex ComposeFragmentIn dl_compose_v(uint vid [[ vertex_id ]],
-									  constant VERTEX_UV* vertexBuffer [[ buffer(0) ]])
+vertex PointLightFragmentIn dl_pointLight_v(uint vid [[ vertex_id ]],
+											uint iid [[ instance_id ]],
+											constant float3* vertices [[ buffer(0) ]],
+											constant POINT_LIGHT* pointLights [[ buffer(1) ]],
+											constant VIEWPORT_UNIFORMS& viewportUniforms [[ buffer(2) ]])
 {
-	constant VERTEX_UV& v = vertexBuffer[vid];
-	ComposeFragmentIn out =
+	constant POINT_LIGHT& light = pointLights[iid];
+	
+	float4 eye_location = viewportUniforms.view * float4(light.location, 1.0f);
+	//float3 fragmentPosition_eye = vertices[vid] * light.radius + light.location;
+	//float4 location = viewportUniforms.view * float4(fragmentPosition_eye, 1.0f);
+	//fragmentPosition_eye = location.xyz;
+	
+	float3 fragmentPosition_eye = vertices[vid] * light.radius + eye_location.xyz;
+	float4 location = float4(fragmentPosition_eye, 1.0f);
+	fragmentPosition_eye = location.xyz;
+	
+	PointLightFragmentIn out =
 	{
-		.position = float4(v.position, 0.0f, 1.0f),
-		.uv = v.uv
+		.position = viewportUniforms.projection * location,
+		.fragmentPosition_eye = fragmentPosition_eye,
+		.lightIndex = iid,
+		.lightLocation_eye = eye_location
 	};
+	
 	return out;
 }
 
-fragment half4 dl_compose_f(ComposeFragmentIn in [[ stage_in ]],
-							texture2d<half> normalMap [[ texture(0) ]])
+fragment half4 dl_pointLight_f(PointLightFragmentIn in [[ stage_in ]],
+							   texture2d<half> normalMap [[ texture(0) ]],
+							   texture2d<float> depthMap [[ texture(1) ]],
+							   constant POINT_LIGHT* pointLights [[ buffer(1) ]])
 {
 	uint2 xy = uint2(in.position.xy);
-	return half4(normalMap.read(xy).xyz, 1.0f);
+	half4 normal = normalMap.read(xy);
+	float depth = depthMap.read(xy).x;
+	
+	float3 eye_space_fragment_pos = in.fragmentPosition_eye * (depth / in.fragmentPosition_eye.z);
+	float3 light_eye_position = in.lightLocation_eye.xyz;
+	float light_distance = length(light_eye_position - eye_space_fragment_pos);
+	float light_radius = pointLights[in.lightIndex].radius;
+		
+	if (light_distance < light_radius)
+	{
+		float intensity = 1.0f - (light_distance / light_radius);
+		float3 light_direction = normalize(light_eye_position - eye_space_fragment_pos);
+		intensity *= max(dot(float3(normal.xyz), light_direction), 0.0f);
+		
+		half3 color = half3(pointLights[in.lightIndex].color.xyz * intensity);
+		return half4(color, 1);
+	}
+	
+	return half4(0.0f, 0.0f, 0.0f, 0.0f);
 }

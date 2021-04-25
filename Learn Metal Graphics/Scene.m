@@ -44,6 +44,7 @@
 	_nearZ = 0.05f;
 	_farZ = 5.0f;
 	_projectionMatrix = matrix4fIdentity();
+	_invertedProjectionMatrix = matrix4fIdentity();
 	
 	_viewProjectionMatrix = matrix4fIdentity();
 	
@@ -159,8 +160,10 @@
 {
 	float aspect = _sceneRenderer.drawableSize.x / _sceneRenderer.drawableSize.y;
 	_projectionMatrix = matrix4fPerspectiveRightHand_MetalNDC(_fovyRadians, aspect, _nearZ, _farZ);
+	_invertedProjectionMatrix = matrix4fInvert(_projectionMatrix);
 	[self _recalculateViewProjectionMatrix];
 	_local_viewportUniforms.projection = _projectionMatrix;
+	//_local_viewportUniforms.invertedProjection = _invertedProjectionMatrix;
 }
 
 - (void)_recalculateViewProjectionMatrix

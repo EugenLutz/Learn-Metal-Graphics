@@ -31,6 +31,7 @@ VERTEX_NUV;
 typedef struct POINT_LIGHT
 {
 	simd_float3 location;
+	//simd_float3 eye_space_location;
 	simd_float3 color;
 	float radius;
 }
