@@ -8,13 +8,11 @@
 
 #import "ForwardLightingScene.h"
 
-@implementation ForwardLightingScene
-{
+@implementation ForwardLightingScene {
 	//
 }
 
-- (instancetype)initWithSceneRenderer:(SceneRenderer*)sceneRenderer
-{
+- (instancetype)initWithSceneRenderer:(SceneRenderer*)sceneRenderer {
 	self = [super initWithSceneRenderer:sceneRenderer];
 	if (self)
 	{
@@ -23,28 +21,24 @@
 	return self;
 }
 
-- (void)_initCommon
-{
+- (void)_initCommon {
 	_useInstanceIndex = YES;
-	_useArgumentBuffer = NO;
 }
 
-- (void)setup
-{
+- (void)setup {
 	//self.automaticCameraRotationRate = (float)(M_PI / 5.0);
 	//self.automaticCameraRotationRate = (float)(M_PI / 45.0);
 	
 	// MARK: setup render pass descriptor
 	MTLRenderPassDescriptor* renderPassDescriptor = self.sceneRenderer.renderPassDescriptor;
-	renderPassDescriptor.colorAttachments[0].loadAction = MTLStoreActionDontCare;
+	renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 	renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
 	renderPassDescriptor.depthAttachment.clearDepth = 0.0f;
 	renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionDontCare;
 	renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
 }
 
-- (void)drawWithRenderCommandEncoder:(id<MTLRenderCommandEncoder>)renderCommandEncoder timeElapsed:(double)timeElapsed
-{
+- (void)drawWithRenderCommandEncoder:(id<MTLRenderCommandEncoder>)renderCommandEncoder timeElapsed:(double)timeElapsed {
 	//_vertexUniforms.modelView = simd_mul(self.viewMatrix, matrix_identity_float4x4);
 	//_vertexUniforms.modelViewProjection = self.viewProjectionMatrix;
 	
@@ -68,27 +62,20 @@
 	_fragmentUniforms.ambient = vector3fCreate(0.1f, 0.1f, 0.1f);
 	_fragmentUniforms.ambient = vector3fCreate(0.0f, 0.0f, 0.0f);
 	
-	if (_useArgumentBuffer)
-	{
-		//
-	}
-	else
-	{
-		[renderCommandEncoder setRenderPipelineState:self.sceneRenderer.defaultDrawTexturedMeshState];
-		[renderCommandEncoder setDepthStencilState:self.sceneRenderer.defaultDepthStencilState];
-		[renderCommandEncoder setCullMode:MTLCullModeBack];
-		[renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-		
-		[renderCommandEncoder setVertexBuffer:self.sceneRenderer.cubeNUVBuffer offset:0 atIndex:0];
-		[renderCommandEncoder setVertexBytes:&_vertexUniforms length:sizeof(_vertexUniforms) atIndex:1];
-		
-		//[renderCommandEncoder setFragmentTexture:self.sceneRenderer.placeholderTexture atIndex:0];
-		[renderCommandEncoder setFragmentTexture:self.sceneRenderer.rock1Texture atIndex:0];
-		[renderCommandEncoder setFragmentSamplerState:self.sceneRenderer.defaultLinearMipMapMaxAnisotropicSampler atIndex:0];
-		[renderCommandEncoder setFragmentBytes:&_fragmentUniforms length:sizeof(_fragmentUniforms) atIndex:0];
-		
-		[renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numCubeNUVBufferVertices];
-	}
+    [renderCommandEncoder setRenderPipelineState:self.sceneRenderer.defaultDrawTexturedMeshState];
+    [renderCommandEncoder setDepthStencilState:self.sceneRenderer.defaultDepthStencilState];
+    [renderCommandEncoder setCullMode:MTLCullModeBack];
+    [renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+    
+    [renderCommandEncoder setVertexBuffer:self.sceneRenderer.cubeNUVBuffer offset:0 atIndex:0];
+    [renderCommandEncoder setVertexBytes:&_vertexUniforms length:sizeof(_vertexUniforms) atIndex:1];
+    
+    //[renderCommandEncoder setFragmentTexture:self.sceneRenderer.placeholderTexture atIndex:0];
+    [renderCommandEncoder setFragmentTexture:self.sceneRenderer.rock1Texture atIndex:0];
+    [renderCommandEncoder setFragmentSamplerState:self.sceneRenderer.defaultLinearMipMapMaxAnisotropicSampler atIndex:0];
+    [renderCommandEncoder setFragmentBytes:&_fragmentUniforms length:sizeof(_fragmentUniforms) atIndex:0];
+    
+    [renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:self.sceneRenderer.numCubeNUVBufferVertices];
 }
 
 @end

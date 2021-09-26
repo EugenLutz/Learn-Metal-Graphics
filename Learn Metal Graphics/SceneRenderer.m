@@ -10,19 +10,18 @@
 #import "Scene.h"
 #import "ForwardLightingScene.h"
 #import "DeferredLightingScene.h"
+#import "ArgumentBuffersScene.h"
 #include "SharedUniforms.h"
 #include <simd/simd.h>
 
-@implementation SceneRenderer
-{	
+@implementation SceneRenderer {
 	id<MTLCommandQueue> _commandQueue;
 	
 	Scene* _currentScene;
 	double _lastUpdateTime;
 }
 
-- (instancetype)initWithMetalKitView:(MTKView*)metalKitView
-{
+- (instancetype)initWithMetalKitView:(MTKView*)metalKitView {
 	self = [super init];
 	if (self)
 	{
@@ -36,8 +35,7 @@
 	return self;
 }
 
-- (MTLRenderPipelineDescriptor*)_createDefaultRenderPipelineDescriptor
-{
+- (MTLRenderPipelineDescriptor*)_createDefaultRenderPipelineDescriptor {
 	MTLRenderPipelineDescriptor* renderPipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 	renderPipelineDescriptor.rasterSampleCount = _defaultRasterSampleCount;
 	renderPipelineDescriptor.colorAttachments[0].pixelFormat = _defaultColorPixelFormat;
@@ -62,17 +60,18 @@
 	return renderPipelineDescriptor;
 }
 
-- (void)_initCommon
-{
+- (void)_initCommon {
 	NSLog(@"Selected Device: %@", _device.name);
 	
 	MTLArgumentBuffersTier tier = _device.argumentBuffersSupport;
-	switch (tier)
-	{
+	switch (tier) {
 		case MTLArgumentBuffersTier1: NSLog(@"Argument Buffers Tier 1 is supported."); break;
 		case MTLArgumentBuffersTier2: NSLog(@"Argument Buffers Tier 2 is supported."); break;
 		default: NSLog(@"Argument Buffers are not supported."); break;
 	}
+    
+    NSUInteger maxSamplerCount = _device.maxArgumentBufferSamplerCount;
+    NSLog(@"Max argument buffer sampler count: %ld", maxSamplerCount);
 	
 	BOOL supportsRaytracing = _device.supportsRaytracing;
 	if (supportsRaytracing) {
@@ -80,9 +79,6 @@
 	} else {
 		NSLog(@"Raytracing is not supported.");
 	}
-	
-	NSUInteger maxSamplerCount = _device.maxArgumentBufferSamplerCount;
-	NSLog(@"Max argument buffer sampler count: %ld", maxSamplerCount);
 
 	_numDynamicBuffers = 3;
 	_currentDynamicBuffer = 0;
@@ -141,21 +137,6 @@
 	assert(_defaultDrawTexturedMeshState);
 	
 	
-	// MARK: setup default render pipeline state with argument buffer
-	vertexFunction = [library newFunctionWithName:@"defaultArgumentedTexturedCubeVertexShader"];
-	assert(vertexFunction);
-	
-	fragmentFunction = [library newFunctionWithName:@"defaultArgumentedTexturedCubeFragmentShader"];
-	assert(fragmentFunction);
-	
-	renderPipelineDescriptor = [self _createDefaultRenderPipelineDescriptor];
-	renderPipelineDescriptor.label = @"Textured mesh renderer with argument buffer";
-	renderPipelineDescriptor.vertexFunction = vertexFunction;
-	renderPipelineDescriptor.fragmentFunction = fragmentFunction;
-	_defaultDrawArgumentedTexturedMeshState = [_device newRenderPipelineStateWithDescriptor:renderPipelineDescriptor error:&error];
-	assert(_defaultDrawArgumentedTexturedMeshState);
-	
-	
 	// MARK: setup sampler state
 	MTLSamplerDescriptor* samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
 	samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear;
@@ -168,6 +149,10 @@
 	samplerDescriptor.maxAnisotropy = 16;
 	_defaultLinearMipMapMaxAnisotropicSampler = [_device newSamplerStateWithDescriptor:samplerDescriptor];
 	assert(_defaultLinearMipMapMaxAnisotropicSampler);
+    
+    samplerDescriptor.supportArgumentBuffers = YES;
+    _anisotropicSampler_argument = [_device newSamplerStateWithDescriptor:samplerDescriptor];
+    assert(_anisotropicSampler_argument);
 	
 	
 	// MARK: textures
@@ -321,8 +306,7 @@
 	
 	// MARK: Icosahedron
 	
-	simd_float3 icosahedronMeshVertices[] =
-	{
+	simd_float3 icosahedronMeshVertices[] = {
 		texturedCubeVertices[0].position, texturedCubeVertices[1].position, texturedCubeVertices[2].position,
 		texturedCubeVertices[3].position, texturedCubeVertices[4].position, texturedCubeVertices[5].position,
 		
@@ -343,8 +327,7 @@
 	};
 	{
 		unsigned int numItems = sizeof(icosahedronMeshVertices) / sizeof(simd_float3);
-		for (unsigned int i = 0; i < numItems; i++)
-		{
+		for (unsigned int i = 0; i < numItems; i++) {
 			simd_float3 value = icosahedronMeshVertices[i];
 			
 			if (value.x < 0) { value.x = -1.0f; }
@@ -374,8 +357,7 @@
 	
 	// MARK: Point lights
 	
-	const POINT_LIGHT pointLights[] =
-	{
+	const POINT_LIGHT pointLights[] = {
 		{ { -0.56f, 0.56f, -0.56f }, { 0.4f, 0.4f, 0.0f }, 0.4f },
 		{ { 0.56f, 0.56f, -0.56f }, { 0.4f, 0.0f, 0.2f }, 0.8f },
 		{ { -0.51f, 0.51f, 0.51f }, { 0.6f, 0.2f, 0.2f }, 0.2f },
@@ -405,33 +387,31 @@
 	[uploadCommandBuffer waitUntilCompleted];
 		
 	// MARK: scenes
-#define SCENE_ID 1
+#define SCENE_ID 2
 #if SCENE_ID == 0
 	_currentScene = [[ForwardLightingScene alloc] initWithSceneRenderer:self];
 #elif SCENE_ID == 1
 	_currentScene = [[DeferredLightingScene alloc] initWithSceneRenderer:self];
+#elif SCENE_ID == 2
+    _currentScene = [[ArgumentBuffersScene alloc] initWithSceneRenderer:self];
 #endif
 	[_currentScene setup];
 }
 
-- (void)_lock
-{
+- (void)_lock {
 	dispatch_semaphore_wait(_accessSemaphore, DISPATCH_TIME_FOREVER);
 }
 
-- (void)_unlock
-{
+- (void)_unlock {
 	dispatch_semaphore_signal(_accessSemaphore);
 }
 
-- (MTLRenderPassDescriptor*)renderPassDescriptor
-{
+- (MTLRenderPassDescriptor*)renderPassDescriptor {
 	return _metalKitView.currentRenderPassDescriptor;
 }
 
 
-- (id<MTLCommandBuffer>)beginFrameWithNewCommandBufferAndOccupyRenderer
-{
+- (id<MTLCommandBuffer>)beginFrameWithNewCommandBufferAndOccupyRenderer {
 	// Occupy renderer by increasing access semaphore
 	dispatch_semaphore_wait(_frameBoundarySemaphore, DISPATCH_TIME_FOREVER);
 	
@@ -443,29 +423,25 @@
 	return commandBuffer;
 }
 
-- (id<MTLCommandBuffer>)createNewCommandBuffer
-{
+- (id<MTLCommandBuffer>)createNewCommandBuffer {
 	// Create render command buffer
 	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 	return commandBuffer;
 }
 
-- (void)scheduleReleaseRendererAfterCommandBufferCompletion:(id<MTLCommandBuffer>)commandBuffer
-{
+- (void)scheduleReleaseRendererAfterCommandBufferCompletion:(id<MTLCommandBuffer>)commandBuffer {
 	__block dispatch_semaphore_t blockFrameBoundarySemaphore = _frameBoundarySemaphore;
 	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> cmdBuf) {
 		dispatch_semaphore_signal(blockFrameBoundarySemaphore);
 	}];
 }
 
-- (void)scheduleCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
-{
+- (void)scheduleCommandBuffer:(id<MTLCommandBuffer>)commandBuffer {
 	// Send render commands for execution execute to gpu
 	[commandBuffer commit];
 }
 
-- (void)endFrameWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
-{
+- (void)endFrameWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer {
 	// There is no sence to draw anything if drawable is unavailable...
 	// But for now, schedule command to present drawable if it exists.
 	id<CAMetalDrawable> drawable = _currentDrawableInRenderLoop;
@@ -479,8 +455,7 @@
 
 
 
-- (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size
-{
+- (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
 	[self _lock];
 	
 	_drawableSize = simd_make_float2(size.width, size.height);
@@ -489,8 +464,7 @@
 	[self _unlock];
 }
 
-- (void)drawInMTKView:(MTKView*)view
-{
+- (void)drawInMTKView:(MTKView*)view {
 	[self _lock];
 	
 	double currentTime = CACurrentMediaTime();

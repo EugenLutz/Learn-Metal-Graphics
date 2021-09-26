@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A4E2243026FDCC4F0082C697 /* ArgumentBuffersScene.m in Sources */ = {isa = PBXBuildFile; fileRef = A4E2242F26FDCC4F0082C697 /* ArgumentBuffersScene.m */; };
 		C935012C24DDBD56002A049A /* ForwardLightingScene.m in Sources */ = {isa = PBXBuildFile; fileRef = C935012B24DDBD56002A049A /* ForwardLightingScene.m */; };
 		C93EF7C524DE96EC008E4461 /* TexturedMeshShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C93EF7C424DE96EC008E4461 /* TexturedMeshShaders.metal */; };
 		C93EF7CA24DE9B24008E4461 /* rock1.png in Resources */ = {isa = PBXBuildFile; fileRef = C93EF7C824DE9B23008E4461 /* rock1.png */; };
@@ -35,6 +36,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A4E2242E26FDCC4F0082C697 /* ArgumentBuffersScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ArgumentBuffersScene.h; sourceTree = "<group>"; };
+		A4E2242F26FDCC4F0082C697 /* ArgumentBuffersScene.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ArgumentBuffersScene.m; sourceTree = "<group>"; };
 		C935012A24DDBD56002A049A /* ForwardLightingScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ForwardLightingScene.h; sourceTree = "<group>"; };
 		C935012B24DDBD56002A049A /* ForwardLightingScene.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ForwardLightingScene.m; sourceTree = "<group>"; };
 		C93EF7C424DE96EC008E4461 /* TexturedMeshShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TexturedMeshShaders.metal; sourceTree = "<group>"; };
@@ -89,6 +92,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A4E2242D26FDCBDB0082C697 /* Argument buffers */ = {
+			isa = PBXGroup;
+			children = (
+				A4E2242E26FDCC4F0082C697 /* ArgumentBuffersScene.h */,
+				A4E2242F26FDCC4F0082C697 /* ArgumentBuffersScene.m */,
+				C9CF232624E08E380005B049 /* TexturedMeshShadersArg.metal */,
+			);
+			name = "Argument buffers";
+			sourceTree = "<group>";
+		};
 		C93EF7C724DE98CF008E4461 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -104,15 +117,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		C93EF7D724DEBB14008E4461 /* Forward lightning */ = {
+		C93EF7D724DEBB14008E4461 /* Forward lighting */ = {
 			isa = PBXGroup;
 			children = (
 				C935012A24DDBD56002A049A /* ForwardLightingScene.h */,
 				C935012B24DDBD56002A049A /* ForwardLightingScene.m */,
 				C93EF7C424DE96EC008E4461 /* TexturedMeshShaders.metal */,
-				C9CF232624E08E380005B049 /* TexturedMeshShadersArg.metal */,
 			);
-			name = "Forward lightning";
+			name = "Forward lighting";
 			sourceTree = "<group>";
 		};
 		C94B062224DBDBE50050EFA3 = {
@@ -172,8 +184,9 @@
 				C94B064F24DC4D140050EFA3 /* Scene.m */,
 				C9AB838125B448D0008BADC4 /* render_target_index.h */,
 				C955D71E25C813B200E42BC8 /* SharedUniforms.h */,
-				C93EF7D724DEBB14008E4461 /* Forward lightning */,
+				C93EF7D724DEBB14008E4461 /* Forward lighting */,
 				C95D2C9E25B3732600CF8E22 /* Deferred lighting */,
+				A4E2242D26FDCBDB0082C697 /* Argument buffers */,
 			);
 			name = Scene;
 			sourceTree = "<group>";
@@ -275,6 +288,7 @@
 				C94B065024DC4D140050EFA3 /* Scene.m in Sources */,
 				C9CF232724E08E380005B049 /* TexturedMeshShadersArg.metal in Sources */,
 				C93EF7C524DE96EC008E4461 /* TexturedMeshShaders.metal in Sources */,
+				A4E2243026FDCC4F0082C697 /* ArgumentBuffersScene.m in Sources */,
 				C935012C24DDBD56002A049A /* ForwardLightingScene.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

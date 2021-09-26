@@ -13,7 +13,6 @@ NS_ASSUME_NONNULL_BEGIN
 @interface ForwardLightingScene : Scene
 
 @property (nonatomic) BOOL useInstanceIndex;
-@property (nonatomic) BOOL useArgumentBuffer;
 
 @property (nonatomic) TEXTURED_VERTEX_UNIFORMS vertexUniforms;
 @property (nonatomic) MESH_NUV_FRAGMENT_UNIFORMS fragmentUniforms;

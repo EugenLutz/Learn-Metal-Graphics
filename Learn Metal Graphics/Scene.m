@@ -8,24 +8,20 @@
 
 #import "Scene.h"
 
-@implementation Scene
-{
+@implementation Scene {
 	VIEWPORT_UNIFORMS _local_viewportUniforms;
 }
 
-- (instancetype)initWithSceneRenderer:(SceneRenderer*)sceneRenderer
-{
+- (instancetype)initWithSceneRenderer:(SceneRenderer*)sceneRenderer {
 	self = [super init];
-	if (self)
-	{
+	if (self) {
 		_sceneRenderer = sceneRenderer;
 		[self _initBaseSceneCommon];
 	}
 	return self;
 }
 
-- (void)_initBaseSceneCommon
-{
+- (void)_initBaseSceneCommon {
 	_automaticallyRotateDefaultObject = YES;
 	_defaultObjectRotationRate = (float)(M_PI / 4.0);
 	_defaultObjectRotation = 0.0f;
@@ -55,34 +51,28 @@
 	[self _recalculateProjectionMatrix];
 }
 
-- (void)setup
-{
+- (void)setup {
 	// implemented by subclass
 }
 
-- (void)drawableResized:(simd_float2)size
-{
+- (void)drawableResized:(simd_float2)size {
 	[self _recalculateProjectionMatrix];
 	
 	// implemented by subclass
 }
 
-- (void)keyDown:(unsigned int)keyCode
-{
+- (void)keyDown:(unsigned int)keyCode {
 	// implemented by subclass
 }
 
-- (void)keyUp:(unsigned int)keyCode
-{
+- (void)keyUp:(unsigned int)keyCode {
 	// implemented by subclass
 }
 
-- (void)drawWithCommandQueue:(id<MTLCommandQueue>)commandQueue timeElapsed:(double)timeElapsed
-{
+- (void)drawWithCommandQueue:(id<MTLCommandQueue>)commandQueue timeElapsed:(double)timeElapsed {
 	const float twoPi = (float)(M_PI * 2.0);
 	
-	if (_automaticallyRotateDefaultObject)
-	{
+	if (_automaticallyRotateDefaultObject) {
 		_defaultObjectRotation += (float)(_defaultObjectRotationRate * timeElapsed);
 		while (_defaultObjectRotation < 0.0f) {
 			_defaultObjectRotation += twoPi;
@@ -93,8 +83,7 @@
 		[self _recalculateModelMatrix];
 	}
 	
-	if (_automaticallyRotateCamera)
-	{
+	if (_automaticallyRotateCamera) {
 		vector3f rotation = _cameraRotation;
 		rotation.y -= (float)(_automaticCameraRotationRate * timeElapsed);
 		while (rotation.y < 0.0f) {
@@ -115,8 +104,7 @@
 	[_sceneRenderer endFrameWithCommandBuffer:commandBuffer];
 }
 
-- (void)drawWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer timeElapsed:(double)timeElapsed
-{
+- (void)drawWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer timeElapsed:(double)timeElapsed {
 	// Get current render pass descriptor
 	MTLRenderPassDescriptor* currentRenderPassDescriptor = _sceneRenderer.renderPassDescriptor;
 	if (!currentRenderPassDescriptor) {
@@ -129,20 +117,17 @@
 	[encoder endEncoding];
 }
 
-- (void)drawWithRenderCommandEncoder:(id<MTLRenderCommandEncoder>)renderCommandEncoder timeElapsed:(double)timeElapsed
-{
+- (void)drawWithRenderCommandEncoder:(id<MTLRenderCommandEncoder>)renderCommandEncoder timeElapsed:(double)timeElapsed {
 	// implemented by subclass
 }
 
 // MARK: - Properties
 
-- (void)_recalculateModelMatrix
-{
+- (void)_recalculateModelMatrix {
 	_defaultObjectModelMatrix = matrix4fRotationY(_defaultObjectRotation);
 }
 
-- (void)_recalculateViewMatrix
-{
+- (void)_recalculateViewMatrix {
 	matrix4f translation = matrix4fTranslation(-_cameraPosition.x, -_cameraPosition.y, -_cameraPosition.z);
 	matrix4f rotation = matrix4fIdentity();
 	rotation = matrix4fMul(matrix4fRotationY(_cameraRotation.y), rotation);
@@ -156,8 +141,7 @@
 	_local_viewportUniforms.view = _viewMatrix;
 }
 
-- (void)_recalculateProjectionMatrix
-{
+- (void)_recalculateProjectionMatrix {
 	float aspect = _sceneRenderer.drawableSize.x / _sceneRenderer.drawableSize.y;
 	_projectionMatrix = matrix4fPerspectiveRightHand_MetalNDC(_fovyRadians, aspect, _nearZ, _farZ);
 	_invertedProjectionMatrix = matrix4fInvert(_projectionMatrix);
@@ -166,44 +150,37 @@
 	//_local_viewportUniforms.invertedProjection = _invertedProjectionMatrix;
 }
 
-- (void)_recalculateViewProjectionMatrix
-{
+- (void)_recalculateViewProjectionMatrix {
 	_viewProjectionMatrix = matrix4fMul(_projectionMatrix, _viewMatrix);
 	_local_viewportUniforms.viewProjection = _viewProjectionMatrix;
 }
 
-- (void)setCameraPosition:(vector3f)cameraPosition
-{
+- (void)setCameraPosition:(vector3f)cameraPosition {
 	_cameraPosition = cameraPosition;
 	[self _recalculateViewMatrix];
 }
 
-- (void)setCameraRotation:(vector3f)cameraRotation
-{
+- (void)setCameraRotation:(vector3f)cameraRotation {
 	_cameraRotation = cameraRotation;
 	[self _recalculateViewMatrix];
 }
 
-- (void)setCameraZOffset:(float)cameraZOffset
-{
+- (void)setCameraZOffset:(float)cameraZOffset {
 	_cameraZOffset = cameraZOffset;
 	[self _recalculateViewMatrix];
 }
 
-- (void)setFovyRadians:(float)fovyRadians
-{
+- (void)setFovyRadians:(float)fovyRadians {
 	_fovyRadians = fovyRadians;
 	[self _recalculateProjectionMatrix];
 }
 
-- (void)setNearZ:(float)nearZ
-{
+- (void)setNearZ:(float)nearZ {
 	_nearZ = nearZ;
 	[self _recalculateProjectionMatrix];
 }
 
-- (void)setFarZ:(float)farZ
-{
+- (void)setFarZ:(float)farZ {
 	_farZ = farZ;
 	[self _recalculateProjectionMatrix];
 }

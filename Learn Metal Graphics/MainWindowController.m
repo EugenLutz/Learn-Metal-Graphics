@@ -10,19 +10,16 @@
 @import MetalKit;
 #import "SceneRenderer.h"
 
-@implementation MainWindowController
-{
+@implementation MainWindowController {
 	id<MTLDevice> _metalDevice;
 	SceneRenderer* _sceneRenderer;
 }
 
-- (NSNibName)windowNibName
-{
+- (NSNibName)windowNibName {
 	return @"MainWindowController";
 }
 
-- (void)windowDidLoad
-{
+- (void)windowDidLoad {
     [super windowDidLoad];
     
 	NSView* contentView = self.window.contentView;
@@ -43,23 +40,19 @@
 	metalView.delegate = _sceneRenderer;
 }
 
-- (void)mouseDragged:(NSEvent*)event
-{
+- (void)mouseDragged:(NSEvent*)event {
 	//NSLog(@"mouseDragged");
 }
 
-- (void)rightMouseDragged:(NSEvent*)event
-{
+- (void)rightMouseDragged:(NSEvent*)event {
 	//NSLog(@"rightMouseDragged");
 }
 
-- (void)keyDown:(NSEvent*)event
-{
+- (void)keyDown:(NSEvent*)event {
 	NSLog(@"keyDown");
 }
 
-- (void)keyUp:(NSEvent*)event
-{
+- (void)keyUp:(NSEvent*)event {
 	NSLog(@"keyUp");
 }
 

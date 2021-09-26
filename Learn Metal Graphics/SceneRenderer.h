@@ -33,8 +33,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) NSUInteger defaultRasterSampleCount;
 @property (nonatomic, readonly) MTLPixelFormat defaultColorPixelFormat;
 @property (nonatomic, readonly) id<MTLRenderPipelineState> defaultDrawTexturedMeshState;
-@property (nonatomic, readonly) id<MTLRenderPipelineState> defaultDrawArgumentedTexturedMeshState;
+
 @property (nonatomic, readonly) id<MTLSamplerState> defaultLinearMipMapMaxAnisotropicSampler;
+@property (nonatomic, readonly) id<MTLSamplerState> anisotropicSampler_argument;
 
 @property (nonatomic, readonly) id<MTLTexture> rock1Texture;
 @property (nonatomic, readonly) id<MTLTexture> rock2Texture;
